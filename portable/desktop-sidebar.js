@@ -1,92 +1,77 @@
-// Itens extras da barra lateral: Biblioteca e atualização.
-const portableVersion = "0.2.0";
-
-// Ancora no header da sidebar (contém "Nova sessão", sempre visível).
-function portableSidebarAnchor() {
-  const nova = [...document.querySelectorAll("button")].find(
-    (b) => (b.innerText || "").trim() === "Nova sessão",
-  );
-  return nova ? nova.parentElement : null;
-}
-
-function portableVersionNewer(a, b) {
-  const num = (v) => {
-    const m = String(v || "").replace(/^v/i, "").match(/^(\d+)\.(\d+)\.(\d+)/);
-    return m ? [Number(m[1]), Number(m[2]), Number(m[3])] : [0, 0, 0];
+function portableSidebarNavigation(dialog, platform) {
+  const nav = document.createElement("nav");
+  nav.setAttribute("aria-label", "Ferramentas do OpenCode");
+  nav.className = "flex flex-col gap-1 border-b border-v2-border-border-muted pb-2";
+  const add = (icon, label, action) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "flex h-8 items-center gap-2 rounded-md px-2 text-start text-[13px] text-v2-text-text-base hover:bg-v2-overlay-simple-overlay-hover focus-visible:outline";
+    const symbol = document.createElement("span");
+    symbol.setAttribute("aria-hidden", "true");
+    symbol.className = "w-4 text-center text-v2-text-text-muted";
+    symbol.textContent = icon;
+    button.append(symbol, document.createTextNode(label));
+    button.addEventListener("click", action);
+    nav.append(button);
+    return button;
   };
-  const A = num(a);
-  const B = num(b);
-  for (let i = 0; i < 3; i++) {
-    if (A[i] !== B[i]) return A[i] > B[i] ? 1 : -1;
-  }
-  return 0;
+  add("▦", "Biblioteca", () => portableLibrary(dialog));
+  portableMountUpdater(nav, add);
+  return nav;
 }
 
-function portableSidebarItem(container, ref, label, dataset, onClick) {
-  const model = [...container.querySelectorAll("button")].find(
-    (b) => (b.innerText || "").trim() === ref,
-  );
-  if (!model) return false;
-  const btn = document.createElement("button");
-  btn.type = "button";
-  btn.dataset[dataset] = "";
-  btn.className = model.className;
-  btn.innerHTML = '<span class="min-w-0 truncate">' + label + "</span>";
-  btn.addEventListener("click", onClick);
-  container.insertBefore(btn, model.nextSibling);
-  return true;
-}
-
-function portableSidebarTools(dialog) {
-  const mount = () => {
-    const anchor = portableSidebarAnchor();
-    if (!anchor || anchor.querySelector("[data-portable-library-btn]")) return;
-    portableSidebarItem(anchor, "Nova sessão", "▦ Biblioteca", "portableLibraryBtn",
-      () => portableLibrary(dialog));
-  };
-  const observer = new MutationObserver(mount);
-  observer.observe(document.body, { childList: true, subtree: true });
-  mount();
-  return () => observer.disconnect();
-}
-
-function portableUpdater(platform) {
-  const mount = (update) => {
-    const anchor = portableSidebarAnchor();
-    if (!anchor || anchor.querySelector("[data-portable-update-btn]")) return;
-    portableSidebarItem(anchor, "▦ Biblioteca", "↻ Atualização", "portableUpdateBtn",
-      () => platform.openExternal(update.url));
-  };
-
-  const check = async () => {
+function portableMountUpdater(nav, add) {
+  const api = window.electron?.portableUpdater;
+  if (!api) return;
+  const status = document.createElement("small");
+  status.className = "px-2 text-v2-text-text-muted";
+  status.setAttribute("role", "status");
+  let available = null;
+  const button = add("↻", "Verificar atualizações", async () => {
+    button.disabled = true;
     try {
-      const res = await fetch(
-        "https://api.github.com/repos/haruzitz/opencode-infinite-ptbr/releases",
-        { signal: AbortSignal.timeout(15000) },
-      );
-      if (!res.ok) return null;
-      const releases = await res.json();
-      if (!Array.isArray(releases) || !releases.length) return null;
-      const latest = releases.find((r) => !r.draft && r.author?.login === "haruzitz");
-      if (!latest) return null;
-      const tag = latest.tag_name || "";
-      if (portableVersionNewer(tag, portableVersion) > 0) {
-        return { tag, url: latest.html_url };
-      }
-    } catch {}
-    return null;
-  };
-
-  check().then((update) => {
-    if (!update) return;
-    const tryMount = () => {
-      if (portableSidebarAnchor()) {
-        mount(update);
-        observer.disconnect();
-      }
-    };
-    const observer = new MutationObserver(tryMount);
-    observer.observe(document.body, { childList: true, subtree: true });
-    tryMount();
+      if (available) {
+        status.textContent = "Preparando download…";
+        const result = await api.download();
+        status.textContent = result === "saved" ? "Instalador salvo e verificado." :
+          result === "installing" ? "Instalando atualização…" : result === "cancelled" ? "" : result === "busy" ? "O download já está em andamento." : "Atualização indisponível.";
+      } else await check(true);
+    } catch {
+      status.textContent = "Não foi possível concluir a atualização. Tente novamente.";
+    } finally { button.disabled = false; }
   });
+  nav.append(status);
+  async function check(manual) {
+    try {
+      const update = await api.check();
+      available = update?.available ?? null;
+      button.lastChild.textContent = available ? "Baixar atualização " + available : "Verificar atualizações";
+      button.classList.toggle("font-semibold", !!available);
+      if (manual) status.textContent = available ? "Atualização disponível." : "Você está na versão " + update.installed + ".";
+    } catch {
+      if (manual) status.textContent = "Não foi possível consultar o GitHub.";
+    }
+  }
+  void check(false);
+}
+
+function portableProjectNewChat(actions, server, project) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.textContent = "+";
+  button.title = "Nova conversa neste projeto";
+  button.setAttribute("aria-label", button.title);
+  button.dataset.projectAction = "";
+  button.className = "grid size-6 shrink-0 place-items-center rounded text-v2-text-text-muted hover:bg-v2-overlay-simple-overlay-hover hover:text-v2-text-text-base focus-visible:outline";
+  button.addEventListener("click", () => actions().openNewSession(server(), project().worktree));
+  return button;
+}
+
+function portableSidebarPreferences(settings) {
+  const key = "opencode.portable.project-sidebar.v1";
+  if (localStorage.getItem(key)) return;
+  settings.appearance.setTabLayout("vertical");
+  settings.general.setSidebarOrganize("projects");
+  settings.appearance.setSidebarOpen(true);
+  localStorage.setItem(key, "1");
 }

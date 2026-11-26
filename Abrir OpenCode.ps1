@@ -54,14 +54,47 @@ if (Test-Path -LiteralPath $githubCredential -PathType Leaf) {
 $appPath = Join-Path $PSScriptRoot 'apps\OpenCode'
 $app = Join-Path $appPath 'OpenCode.exe'
 
-# Encerra qualquer serviço antigo deste perfil para liberar a porta (evita "port already in use").
-$cli = Join-Path $appPath 'resources\opencode-cli.exe'
-if (Test-Path -LiteralPath $cli -PathType Leaf) {
-    & $cli service stop *> $null
+function Get-AvailablePort([int]$port) {
+    $listener = [Net.Sockets.TcpListener]::new([Net.IPAddress]::Loopback, $port)
+    try {
+        $listener.Start()
+        return $listener.LocalEndpoint.Port
+    } catch [Net.Sockets.SocketException] {
+        if ($port -eq 0) { throw }
+        return $null
+    } finally { $listener.Stop() }
 }
-Get-CimInstance Win32_Process -Filter "Name='opencode-cli.exe'" -ErrorAction SilentlyContinue |
-    Where-Object { $_.ExecutablePath -like ($profilePath + '*') } |
-    ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+
+if (-not (Get-Process -Name OpenCode -ErrorAction SilentlyContinue | Where-Object Path -EQ $app)) {
+    $configDirectory = Join-Path $env:XDG_CONFIG_HOME 'opencode'
+    New-Item -ItemType Directory -Force -Path $configDirectory | Out-Null
+    $configPath = Join-Path $configDirectory 'service.json'
+    $configuration = [pscustomobject]@{}
+    if (Test-Path -LiteralPath $configPath -PathType Leaf) {
+        $configuration = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
+    }
+    $port = [int]$configuration.port
+    $reuse = $false
+    $registration = Join-Path $env:XDG_STATE_HOME 'opencode\service.json'
+    if ($port -gt 0 -and (Test-Path -LiteralPath $registration -PathType Leaf)) {
+        try {
+            $state = Get-Content -LiteralPath $registration -Raw | ConvertFrom-Json
+            $owner = Get-Process -Id $state.pid -ErrorAction Stop
+            $expectedPrefix = (Join-Path $profilePath 'desktop\cli') + '\'
+            $reuse = $state.url -eq "http://127.0.0.1:$port" -and
+                $owner.Path -and $owner.Path.StartsWith($expectedPrefix, [StringComparison]::OrdinalIgnoreCase) -and
+                ((Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction Stop).OwningProcess -contains $state.pid)
+        } catch { $reuse = $false }
+    }
+    if (-not $reuse -and ($port -le 0 -or -not (Get-AvailablePort $port))) {
+        $port = Get-AvailablePort 0
+    }
+    if ($configuration.port -ne $port) {
+        $configuration | Add-Member -NotePropertyName port -NotePropertyValue $port -Force
+        $configuration | Add-Member -NotePropertyName hostname -NotePropertyValue '127.0.0.1' -Force
+        [IO.File]::WriteAllText($configPath, ($configuration | ConvertTo-Json -Depth 15), [Text.UTF8Encoding]::new($false))
+    }
+}
 
 if ($projectPath) {
     $encoded = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($projectPath))

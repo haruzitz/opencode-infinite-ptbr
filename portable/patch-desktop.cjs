@@ -3,7 +3,7 @@ const path = require("node:path");
 const { createHash } = require("node:crypto");
 const { SourceTextModule } = require("node:vm");
 
-const [sourcePath, targetPath] = process.argv.slice(2);
+const [sourcePath, targetPath, mode] = process.argv.slice(2);
 if (!sourcePath || !targetPath || path.resolve(sourcePath) === path.resolve(targetPath)) {
   throw new Error("Informe os caminhos de origem e destino do ASAR.");
 }
@@ -13,16 +13,20 @@ const dataOffset = 8 + source.readUInt32LE(4);
 const entries = JSON.parse(source.subarray(16, 16 + source.readUInt32LE(12)).toString("utf8"));
 const targets = new Map([
   ["out/main/index.js", content => {
+    content = replaceOnce(content, "P&&g.setPath(`documents`,T.join(r,`documents`))", "portableDocuments(r)");
+    content = replaceOnce(content, "process.env.XDG_STATE_HOME=T.join(e,`state`)", "process.env.XDG_STATE_HOME=T.join(e,`home`,`.local`,`state`)");
     return 'import { execFile as portableGitExec } from "node:child_process";\n'
       + 'import portableGitPath from "node:path";\n'
       + 'import { ipcMain as portableGithubIpc } from "electron";\n'
-      + readPatch("desktop-github-main.js") + "\nportableGithubRegister();\n" + content;
+      + readPatch("desktop-github-main.js") + "\nportableGithubRegister();\n" + readPatch("desktop-library-main.js") + "\n" + readPatch("desktop-update-main.js") + "\n" + content
+      + '\nfunction portableDocuments(root){if(!P){try{if(ae(g.getPath("documents")))return}catch(error){console.warn("[portable-documents]",error)}}g.setPath("documents",T.join(root,"documents"))}\n';
   }],
   ["out/preload/index.cjs", content => {
-    return replaceOnce(content, "getPathForFile:t=>e.webUtils.getPathForFile(t)",
-      'portableGithub:{status:directory=>e.ipcRenderer.invoke("portable:github-status",directory),login:()=>e.ipcRenderer.invoke("portable:github-login"),cancelLogin:()=>e.ipcRenderer.invoke("portable:github-cancel-login"),configureReader:()=>e.ipcRenderer.invoke("portable:github-reader")},getPathForFile:t=>e.webUtils.getPathForFile(t)');
+    return patchLibraryPreload(replaceOnce(content, "getPathForFile:t=>e.webUtils.getPathForFile(t)",
+      'portableGithub:{status:directory=>e.ipcRenderer.invoke("portable:github-status",directory),login:()=>e.ipcRenderer.invoke("portable:github-login"),cancelLogin:()=>e.ipcRenderer.invoke("portable:github-cancel-login"),configureReader:()=>e.ipcRenderer.invoke("portable:github-reader")},getPathForFile:t=>e.webUtils.getPathForFile(t)'));
   }],
   ["out/main/desktop-Bu-SLvc7.js", content => {
+    content = replaceOnce(content, "t?.XDG_STATE_HOME||delete process.env.XDG_STATE_HOME", "t?.XDG_STATE_HOME||process.env.OPENCODE_DESKTOP_TEST_ROOT||delete process.env.XDG_STATE_HOME");
     content = replaceOnce(content, "d=yield*Lh(u),f=(e,t)=>{let r=t.filter(e=>e.startsWith(`opencode://`));",
       "d=yield*Lh(u),f=(e,t)=>{const local=portableProjectLinks(t);if(local.length)d.receive(local);let r=t.filter(e=>e.startsWith(`opencode://`));");
     content = replaceOnce(content, "return I.on(`second-instance`,f),I.on(`open-url`,p)",
@@ -36,8 +40,7 @@ const targets = new Map([
     content = replaceOnce(content, "sidebarOrganize:`list`", "sidebarOrganize:`projects`");
     content = replaceOnce(content, "function Eyn(e){let t=xi(),n=PX(),r=VK(),i=dJ(),a=AB(),o=Pr(),s=fq(),c=NB(),l=WW(),u=Mn(",
       readPatch("desktop-project-renderer.js") + "\n"
-      + readPatch("desktop-sidebar.js") + "\n"
-      + "function Eyn(e){let t=xi(),n=PX(),r=VK(),i=dJ(),a=AB(),o=Pr(),s=fq(),c=NB(),l=WW(),portableProjectHandler=portableProjectInstall(s,c,l),portableSidebarCleanup=portableSidebarTools(o),portableUpdaterRun=portableUpdater(t),u=Mn(");
+      + "function Eyn(e){let t=xi(),n=PX(),r=VK(),i=dJ(),a=AB(),o=Pr(),s=fq(),c=NB(),l=WW(),portableProjectHandler=portableProjectInstall(s,c,l),u=Mn(");
     content = replaceOnce(content, "function _an(){let e=Mn(`(max-width: 767px)`),t=k5t(),n=P7t(t),",
       "const portableHomeCategoryStyles=" + JSON.stringify(readPatch("desktop-home-categories.css")) + ";\n"
       + readPatch("desktop-custom-cards.js") + "\n"
@@ -51,6 +54,7 @@ const targets = new Map([
       + readPatch("desktop-github-renderer.js") + "\nfunction nvn(e){let t=xi(),n=dJ(),r=AB(),i=VK(),");
     content = replaceOnce(content, "F(()=>s({type:`disposed`})),$B(N(e=>e||!!t.current(),!1),()=>s({type:`load.requested`}))",
       'portableGithubBrowse=(id,url)=>{const view=t.current(),browser=i();if(!view||view.id!==id||!browser?.available(view)||!browser.attached(view))return false;browser.openURL(view,url);return true},F(()=>{portableGithubBrowse=undefined;s({type:`disposed`})}),$B(N(e=>e||!!t.current(),!1),()=>s({type:`load.requested`}))');
+    content = patchLibraryHost(patchSidebar(content));
     return replaceOnce(content, "V(a,I(R,{get when(){return!e.verticalTabs},get children(){var e=M_n();return V(e,I(u_n,{items:C})),e}}),null),j(t=>",
       "V(a,portableGithubButton(d,_,v,T,E,NB(),t,Pr()),null),V(a,I(R,{get when(){return!e.verticalTabs},get children(){var e=M_n();return V(e,I(u_n,{items:C})),e}}),null),j(t=>");
   }],
@@ -79,6 +83,78 @@ const targets = new Map([
     return replaceOnce(content, "var e={", "var e={" + extra);
   }],
 ]);
+
+function patchSidebar(content) {
+  content = replaceOnce(content, "function Eyn(e){let t=xi(),n=PX(),r=VK(),",
+    readPatch("desktop-sidebar.js") + "\nfunction Eyn(e){let t=xi(),n=PX(),r=VK(),portableSidebarReady=portableSidebarPreferences(r),");
+  content = replaceOnce(content, "get keybind(){return n.keybindParts(`tab.new`)}}),null),e})(),U_n()",
+    "get keybind(){return n.keybindParts(`tab.new`)}}),null),V(e,portableSidebarNavigation(Pr(),t),null),e})(),U_n()");
+  content = replaceOnce(content, "f=()=>o.showAll?d():d().slice(0,7);",
+    "f=()=>o.showAll?d():d().slice(0,7).concat(d().slice(7).filter(portableCurrentProject));");
+  content = replaceOnce(content, "h=N(()=>Map.groupBy(m(),e=>Rz(e.project.worktree)));return",
+    "h=N(()=>Map.groupBy(m(),e=>Rz(e.project.worktree))),portableCurrentProject=project=>{const tab=e.currentTab;if(!tab||tab.server!==u())return false;const sessions=h().get(Rz(project.worktree));return tab.type===`session`&&!!sessions?.some(item=>item.session.id===tab.sessionId)};return");
+  content = replaceOnce(content, "get expanded(){return!!e.state.expanded[l()]},onToggle:()=>{e.state.expanded[l()]&&s(`sessionLimits`,l(),5),e.onExpand(l())}",
+    "get expanded(){return e.state.expanded[l()]??portableCurrentProject(r())},onToggle:()=>{const expanded=e.state.expanded[l()]??portableCurrentProject(r());if(expanded)s(`sessionLimits`,l(),5);e.onExpand(l(),!expanded)}");
+  content = replaceOnce(content, "onExpand:e=>u(`expanded`,e,e=>!e)",
+    "onExpand:(e,expanded)=>u(`expanded`,e,expanded)");
+  content = replaceOnce(content, "var t=Dhn();return V(t,()=>e.children),t",
+    "var t=Dhn();return Object.assign(t.style,{marginInlineStart:\"16px\",paddingInlineStart:\"8px\",borderInlineStart:\"1px solid var(--v2-border-border-muted)\"}),V(t,()=>e.children),t");
+  return replaceOnce(content, "V(u,I(rG,{get icon(){return I(SV,{name:`edit`})},variant:`ghost-muted`,size:`small`,get\"aria-label\"(){return t.t(`command.session.new`)},onClick:()=>e.actions.openNewSession(e.server,e.project.worktree)}),null)",
+    "o.insertBefore(portableProjectNewChat(()=>e.actions,()=>e.server,()=>e.project),u)");
+
+}
+
+if (mode === "--sidebar-only") {
+  targets.clear();
+  targets.set("out/renderer/assets/main-DtumKGhc.js", content => {
+    const start = content.indexOf("// Itens extras da barra lateral:");
+    const end = content.indexOf("function Eyn(e)", start);
+    if (start < 0 || end < 0) throw new Error("Personalização anterior da barra lateral não encontrada.");
+    content = content.slice(0, start) + content.slice(end);
+    content = replaceOnce(content, "portableSidebarCleanup=portableSidebarTools(o),portableUpdaterRun=portableUpdater(t),", "");
+    return patchSidebar(content);
+  });
+}
+
+function patchLibraryPreload(content) {
+  return replaceOnce(content, "getPathForFile:t=>e.webUtils.getPathForFile(t)",
+    'portableUpdater:{check:()=>e.ipcRenderer.invoke("portable:update-check"),download:()=>e.ipcRenderer.invoke("portable:update-download")},portableLibrary:{list:()=>e.ipcRenderer.invoke("portable:library-list"),files:()=>e.ipcRenderer.invoke("portable:library-files"),blob:hash=>e.ipcRenderer.invoke("portable:library-blob",hash),reveal:path=>e.ipcRenderer.invoke("portable:library-reveal",path)},getPathForFile:t=>e.webUtils.getPathForFile(t)');
+}
+
+function patchLibraryHost(content) {
+  content = replaceOnce(content, 'function Eyn(e){let t=xi()', 'function Eyn(e){let portableLibraryNavigate=$r(),t=xi()');
+  return replaceOnce(content, "V(o,I(Evn,{get children(){return I(Pt,{get children(){return e.children}})}}))",
+    "o.dataset.portableLibraryHost='',o.portableOpenMessage=(sessionId,messageId,partId)=>{const local=c.ownUrl(),server=local&&s.servers.list().find(server=>MB.local(server,local));if(!server||!sessionId||!messageId)return false;const path=PB(MB.key(server),encodeURIComponent(sessionId));const hash='#message-'+encodeURIComponent(messageId)+(partId?'~'+encodeURIComponent(partId):'')+(partId?'~':'~~')+Date.now();portableLibraryNavigate(path+hash,{scroll:false});return true},V(o,I(Evn,{get children(){return I(Pt,{get children(){return e.children}})}}))");
+}
+
+function patchLibraryTimeline(content) {
+  content = replaceOnce(content, "if(t)return t[1]},$x=", "if(t)return t[1].split('~')[0]},$x=");
+  content = replaceOnce(content, "return i!==r.e&&V(n,`id`,r.e=i),a!==r.t&&V(n,`data-message-id`",
+    "return U(t.row,`AssistantPart`)&&V(n,`data-portable-library-parts`,(t.row.group.type===`part`?[t.row.group.ref]:t.row.group.refs).map(ref=>ref.partID).join(' ')),i!==r.e&&V(n,`id`,r.e=i),a!==r.t&&V(n,`data-message-id`");
+  content = replaceOnce(content, "U(e,`AssistantPart`)&&e.group.type===`part`&&e.group.ref.partID===r",
+    "U(e,`AssistantPart`)&&(e.group.type===`part`?e.group.ref.partID===r:e.group.refs.some(ref=>ref.partID===r))");
+  content = replaceOnce(content, "anchor:w,revealMessage:e=>d(e),", "anchor:w,revealMessage:(e,t)=>d(e,t),");
+  content = replaceOnce(content, "function OS(e){let t=it(),n=hi(),", "function OS(e){let t=it(),n=hi(),g=()=>t.hash.split('~')[1],");
+  return replaceOnce(content, "let r=n?document.getElementById(e.anchor(t.messageID)):null;r||e.revealMessage(t.messageID);let i=r??document.getElementById(e.anchor(t.messageID));",
+    "const part=g();const find=()=>part?e.scroller()?.querySelector('[data-portable-library-parts~='+CSS.escape(decodeURIComponent(part))+']'):document.getElementById(e.anchor(t.messageID));let r=n?find():null;r||e.revealMessage(t.messageID,part?decodeURIComponent(part):void 0);let i=r??find();");
+}
+
+targets.set("out/renderer/assets/route-Oq3PA11J.js", patchLibraryTimeline);
+
+if (mode === "--library-only") {
+
+  targets.clear();
+  targets.set("out/renderer/assets/route-Oq3PA11J.js", patchLibraryTimeline);
+  targets.set("out/main/index.js", content => replaceOnce(content, "portableGithubRegister();",
+    "portableGithubRegister();\n" + readPatch("desktop-library-main.js")));
+  targets.set("out/preload/index.cjs", patchLibraryPreload);
+  targets.set("out/renderer/assets/main-DtumKGhc.js", content => {
+    const start = content.indexOf("function portableLibrary(dialog)");
+    const boundary = content.indexOf("\nconst ", content.indexOf("function portableHomeTools", start));
+    if (start < 0 || boundary < 0) throw new Error("Biblioteca anterior não encontrada.");
+    return patchLibraryHost(content.slice(0, start) + readPatch("desktop-library.js") + content.slice(boundary));
+  });
+}
 
 function readPatch(file) {
   return fs.readFileSync(path.join(__dirname, file), "utf8");

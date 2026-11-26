@@ -61,22 +61,24 @@ Você também pode criar o **seu próprio cartão** clicando em **"+ Criar Card 
 
 ### 🧭 Barra lateral
 
-A lateral esquerda organiza seu trabalho como no Codex:
+A barra lateral agrupa projetos e conversas por pasta.
 
 - **Projetos separados** — cada pasta vira um grupo com seus próprios chats.
 - **Chats por pasta** — as conversas de cada projeto ficam agrupadas.
-- **Nova sessão** — cria um novo chat com um clique.
+- **Nova sessão** — cria um novo chat. O botão **+** ao lado de cada pasta inicia a conversa naquele projeto.
 - **Buscar sessões** — encontra uma conversa rapidamente.
 
 A barra lateral fica **ativa por padrão** e pode ser recolhida ou expandida pelo botão **"Alternar barra lateral"**.
 
 ### 📚 Biblioteca
 
-Na barra lateral, o botão **"▦ Biblioteca"** abre um espaço onde você importa arquivos salvos no computador: imagens, vídeos, áudios, PDFs, textos e planilhas. Imagens, vídeos e áudios ganham **prévia**, e você pode baixar de volta qualquer arquivo importado.
+**Biblioteca** abre uma página do aplicativo com abas de imagens, documentos, vídeos e áudios. A grade exibe até 12 itens por página. Você pode visualizar imagens, importar e baixar arquivos, e usar **Mostrar na conversa** nos itens vinculados ao histórico. Os documentos criados em uma pasta de projeto podem ser localizados pelo Explorer.
 
-### 🔄 Atualização automática
+### Atualizações do fork
 
-Quando uma **nova versão** for publicada neste repositório, o botão **"↻ Atualização"** aparece na barra lateral. Clique nele para abrir a página da versão e baixar o instalador novo. A verificação consulta apenas as versões lançadas pelo autor do projeto.
+A partir da versão **0.2.2**, a barra lateral consulta as releases estáveis publicadas por Haruzitz. Você também pode clicar em **Verificar atualizações**. Se houver uma versão mais nova, **Baixar atualização** salva o instalador pelo próprio OpenCode e verifica o SHA-256 informado pelo GitHub. Você pode então instalar e reabrir o aplicativo, preservando o perfil, as conversas e os projetos.
+
+Versões anteriores usam o aviso que abre a página da release. A nova opção de download passa a aparecer após instalar a v0.2.2 e publicar uma release posterior.
 
 ### 🐙 GitHub
 
