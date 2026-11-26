@@ -1,0 +1,14 @@
+{
+  "upstreamCommit": "c2bb7c1a182be1547b8da18f24ec8edfa15ea517",
+  "upstreamRelease": "v0.2.2",
+  "updateMethodSha256": "596cbda546c16db1cef0d82869e540f40196df776aebb56130e1132cf7f2f6de",
+  "replacedPaths": [
+    "apps/OpenCode",
+    "Abrir OpenCode.ps1"
+  ],
+  "preservedPaths": [
+    "portable/Launch-WithHeadroom.ps1",
+    "OpenCode Infinite PT-BR.exe",
+    "profile"
+  ]
+}

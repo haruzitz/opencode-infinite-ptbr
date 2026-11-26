@@ -1,0 +1,11 @@
+const fs = require('node:fs');
+const path = require('node:path');
+const crypto = require('node:crypto');
+const contract = JSON.parse(fs.readFileSync(path.join(__dirname, 'upstream-compatibility.json'), 'utf8'));
+const source = fs.readFileSync(process.argv[2] || path.join(__dirname, 'Installer.cs'), 'utf8').replace(/\r\n/g, '\n');
+const start = source.indexOf('    private static void UpdateExisting(');
+const end = source.indexOf('    private static void Launch(', start);
+if (start < 0 || end < 0) throw new Error('Contrato do atualizador oficial não reconhecido. Revise a integração.');
+const hash = crypto.createHash('sha256').update(source.slice(start, end).trim()).digest('hex');
+if (hash !== contract.updateMethodSha256) throw new Error('O atualizador oficial mudou. Revise os caminhos substituídos e execute os testes de preservação antes de gerar o pacote Headroom.');
+console.log('Contrato do atualizador ' + contract.upstreamRelease + ' confirmado.');

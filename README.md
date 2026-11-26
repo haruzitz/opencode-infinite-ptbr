@@ -27,6 +27,8 @@ Você não precisa saber programar para usar. É só digitar o que quer fazer, e
 
 Depois de instalado, abra pelo atalho **"OpenCode Infinite PT-BR"**.
 
+Nos novos builds, você também pode abrir **`OpenCode Infinite PT-BR.exe`** dentro da pasta instalada. Aguarde a janela de instalação concluir: pastas com sufixo `.tmp` são temporárias e não devem ser usadas para iniciar o aplicativo. O launcher mostra uma janela enquanto prepara a primeira abertura; erros ficam em `profile\launcher.log`.
+
 ---
 
 ## Primeiros passos (na primeira vez)
@@ -139,6 +141,34 @@ Não. Os cartões usam modelos gratuitos. Você pode adicionar seus próprios mo
 ## Para desenvolvedores
 
 Quer modificar, recompilar ou gerar o instalador? Consulte o [BUILD.md](BUILD.md).
+
+## Headroom: compressão de contexto (opcional)
+
+A integração com [Headroom](https://github.com/headroomlabs-ai/headroom) usa o plugin oficial para OpenCode 2.x e um serviço local de compressão. Ela reduz resultados repetitivos de ferramentas antes de enviá-los ao modelo. A economia depende do conteúdo; não aumenta a cota de requisições do provedor.
+
+Na pasta do aplicativo, com **Python 3.11 ou superior** instalado, execute no PowerShell:
+
+```powershell
+& '.\portable\Configurar Headroom.ps1'
+& '.\portable\Launch-WithHeadroom.ps1'
+```
+
+Feche o OpenCode antes da primeira abertura com Headroom: uma instância já aberta não recebe a nova configuração. A instalação usa um ambiente Python isolado em `profile\headroom\venv`, fixa Headroom em **0.45.0** e prepara os tokenizadores. Não baixa um modelo de linguagem. Os arquivos iniciais exigem internet; a compressão acontece localmente. O provedor continua recebendo a requisição, agora comprimida.
+
+O launcher inicia o serviço automaticamente e preserva os modelos e plugins configurados. Os dados de trabalho e logs do Headroom ficam em `profile\headroom`. O serviço escuta apenas em `127.0.0.1`; o envio automático de telemetria está desativado. Mensagens de usuário e de sistema não são comprimidas pela configuração da integração. O plugin disponibiliza `headroom_retrieve` para recuperar conteúdo mantido pelo Headroom.
+
+Uma ponte local consulta `profile\desktop\infinite.json` a cada nova conexão HTTPS para manter o modo atual: None, WARP, Tor ou Proxy. Ela não altera as rotinas de rotação do aplicativo. Uma conexão já em andamento não migra no meio da resposta. A compatibilidade com as portas WARP/Tor foi verificada em testes de configuração; serviços WARP/Tor reais e contas de provedores não fizeram parte dos testes.
+
+Para escolher uma porta diferente ou desativar:
+
+```powershell
+& '.\portable\Configurar Headroom.ps1' -Port 18787
+& '.\portable\Configurar Headroom.ps1' -Disable
+```
+
+Feche e abra o OpenCode para aplicar. Ao desativar, o serviço encerra automaticamente; os dados ficam preservados. Se o serviço falhar quando habilitado, o launcher informa o erro em vez de abrir silenciosamente sem compressão. A integração exige o pacote personalizado Headroom; os instaladores oficiais não incluem essa camada local.
+
+A branch `main` acompanha o projeto oficial. As extensões ficam em `integracao/headroom`: `Launch-WithHeadroom.ps1` prepara o Headroom e chama o launcher oficial, sem modificar esse arquivo. Para gerar o pacote personalizado, use `portable\Build headroom.ps1`; `portable\Build release.ps1` continua sendo o build oficial. O atualizador v0.2.2 troca o aplicativo e o launcher oficial, preservando `portable`, o `.exe` personalizado e o perfil. Mudanças futuras nesse contrato exigem nova verificação.
 
 ---
 

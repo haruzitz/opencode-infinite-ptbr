@@ -10,3 +10,7 @@
 *.sqlite*
 *.dpapi
 .env*
+__pycache__/
+*.pyc
+warpclaude.bat
+warpcodex.bat
