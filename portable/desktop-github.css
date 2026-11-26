@@ -1,0 +1,45 @@
+.portable-github {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  -webkit-app-region: no-drag;
+}
+
+.portable-github-toggle {
+  display: grid;
+  width: 34px;
+  height: 28px;
+  place-items: center;
+  border-radius: 6px;
+  color: var(--v2-text-text-base, CanvasText);
+  cursor: pointer;
+}
+
+.portable-github-toggle:hover, .portable-github-toggle[aria-expanded="true"] {
+  background: color-mix(in srgb, currentColor 11%, transparent);
+}
+
+.portable-github-panel {
+  box-sizing: border-box;
+  width: min(360px, calc(100vw - 36px));
+  padding: 4px 16px 16px;
+  color: var(--v2-text-text-base, CanvasText);
+}
+
+.portable-github-panel p { margin: 0 0 8px; font-size: 13px; overflow-wrap: anywhere; }
+.portable-github-panel .portable-github-login-status { margin: 9px 0; }
+
+.portable-github-panel button {
+  display: block;
+  width: 100%;
+  margin-top: 7px;
+  padding: 6px 8px;
+  border: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+  border-radius: 5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.portable-github-panel button[hidden] { display: none; }
+.portable-github-panel button:disabled { opacity: .5; cursor: default; }
+.portable-github-panel .portable-github-primary { border-color: #37976d; }

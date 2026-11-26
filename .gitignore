@@ -1,0 +1,12 @@
+/profile/
+/apps/
+/downloads/
+/models/
+/Distribuicao/
+*.asar
+*.exe
+*.zip
+*.db*
+*.sqlite*
+*.dpapi
+.env*
