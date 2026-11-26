@@ -32,6 +32,10 @@ $env:HOMEDRIVE = [IO.Path]::GetPathRoot($env:USERPROFILE).TrimEnd('\')
 $env:HOMEPATH = $env:USERPROFILE.Substring($env:HOMEDRIVE.Length)
 $env:TEMP = Join-Path $profilePath 'temp'
 $env:TMP = $env:TEMP
+$env:XDG_CONFIG_HOME = Join-Path $profilePath 'config'
+$env:XDG_DATA_HOME = Join-Path $profilePath 'data'
+$env:XDG_STATE_HOME = Join-Path $profilePath 'home\.local\state'
+$env:XDG_CACHE_HOME = Join-Path $profilePath 'cache'
 
 foreach ($folder in @($env:APPDATA, $env:LOCALAPPDATA, $env:USERPROFILE, $env:TEMP)) {
     New-Item -ItemType Directory -Force -Path $folder | Out-Null
@@ -49,6 +53,16 @@ if (Test-Path -LiteralPath $githubCredential -PathType Leaf) {
 
 $appPath = Join-Path $PSScriptRoot 'apps\OpenCode'
 $app = Join-Path $appPath 'OpenCode.exe'
+
+# Encerra qualquer serviço antigo deste perfil para liberar a porta (evita "port already in use").
+$cli = Join-Path $appPath 'resources\opencode-cli.exe'
+if (Test-Path -LiteralPath $cli -PathType Leaf) {
+    & $cli service stop *> $null
+}
+Get-CimInstance Win32_Process -Filter "Name='opencode-cli.exe'" -ErrorAction SilentlyContinue |
+    Where-Object { $_.ExecutablePath -like ($profilePath + '*') } |
+    ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+
 if ($projectPath) {
     $encoded = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($projectPath))
     $encoded = $encoded.TrimEnd('=').Replace('+', '-').Replace('/', '_')
