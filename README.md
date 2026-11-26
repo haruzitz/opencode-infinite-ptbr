@@ -14,7 +14,7 @@ Você não precisa saber programar para usar. É só digitar o que quer fazer, e
 2. Na versão mais recente, clique em **`OpenCode-Infinite-PTBR-Setup.exe`** para baixar.
 
 > Download direto da versão atual:
-> <https://github.com/haruzitz/opencode-infinite-ptbr/releases/download/v0.1.0-preview/OpenCode-Infinite-PTBR-Setup.exe>
+> <https://github.com/haruzitz/opencode-infinite-ptbr/releases/download/v0.2.0/OpenCode-Infinite-PTBR-Setup.exe>
 
 ### 2. Execute o instalador
 
