@@ -88,11 +88,6 @@ function portableLibrary(dialog) {
 function portableHomeTools(dialog) {
   const tools = document.createElement("div");
   tools.className = "portable-home-tools";
-  const library = document.createElement("button");
-  library.type = "button";
-  library.textContent = "▦ Biblioteca";
-  library.addEventListener("click", () => portableLibrary(dialog));
-  tools.append(library);
   if (!localStorage.getItem("opencode.portable.first-steps")) {
     const guide = document.createElement("details");
     const summary = document.createElement("summary");

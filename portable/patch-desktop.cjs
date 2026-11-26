@@ -32,8 +32,12 @@ const targets = new Map([
       + readPatch("desktop-project-main.js") + "\n" + content;
   }],
   ["out/renderer/assets/main-DtumKGhc.js", content => {
+    content = replaceOnce(content, "tabLayout:`horizontal`", "tabLayout:`vertical`");
+    content = replaceOnce(content, "sidebarOrganize:`list`", "sidebarOrganize:`projects`");
     content = replaceOnce(content, "function Eyn(e){let t=xi(),n=PX(),r=VK(),i=dJ(),a=AB(),o=Pr(),s=fq(),c=NB(),l=WW(),u=Mn(",
-      readPatch("desktop-project-renderer.js") + "\nfunction Eyn(e){let t=xi(),n=PX(),r=VK(),i=dJ(),a=AB(),o=Pr(),s=fq(),c=NB(),l=WW(),portableProjectHandler=portableProjectInstall(s,c,l),u=Mn(");
+      readPatch("desktop-project-renderer.js") + "\n"
+      + readPatch("desktop-sidebar.js") + "\n"
+      + "function Eyn(e){let t=xi(),n=PX(),r=VK(),i=dJ(),a=AB(),o=Pr(),s=fq(),c=NB(),l=WW(),portableProjectHandler=portableProjectInstall(s,c,l),portableSidebarCleanup=portableSidebarTools(o),portableUpdaterRun=portableUpdater(t),u=Mn(");
     content = replaceOnce(content, "function _an(){let e=Mn(`(max-width: 767px)`),t=k5t(),n=P7t(t),",
       "const portableHomeCategoryStyles=" + JSON.stringify(readPatch("desktop-home-categories.css")) + ";\n"
       + readPatch("desktop-custom-cards.js") + "\n"
@@ -54,6 +58,25 @@ const targets = new Map([
     const wordmark = "j(h,P(da,{ref:u,state:s,onEvent:d,play:!0,get sound(){return a.sounds.interfaceEnabled}}),g)";
     const credit = 'j(h,b(`<p data-portable-credit style="text-align:center;margin:8px 0 -10px;font-size:13px;font-weight:500;color:var(--v2-text-text-faint)">Personalização por Haruzitz</p>`)(),g)';
     return replaceOnce(content, wordmark, wordmark + "," + credit);
+  }],
+  ["out/renderer/assets/br-BXn-8ckh.js", content => {
+    const extra = '"command.sidebar.toggle":`Alternar barra lateral`,' +
+      '"command.sidebar.toggle.unread":`Alternar barra lateral, sessões não lidas`,' +
+      '"command.session.search":`Buscar sessões`,' +
+      '"command.session.previous":`Sessão anterior`,' +
+      '"command.session.next":`Próxima sessão`,' +
+      '"command.session.previous.unseen":`Sessão anterior não lida`,' +
+      '"command.commands.search":`Buscar comandos`,' +
+      '"sidebar.organize.projects":`Projetos`,' +
+      '"sidebar.organize.openTab":`Abrir aba`,' +
+      '"sidebar.organize.showMore":`Mostrar mais`,' +
+      '"sidebar.organize.showLess":`Mostrar menos`,' +
+      '"sidebar.organize.empty":`Nenhuma sessão ainda`,' +
+      '"settings.experimental.row.sidebarOrganize.title":`Organizar barra lateral vertical`,' +
+      '"settings.experimental.row.sidebarOrganize.description":`Agrupe as abas laterais por projeto ou mostre uma lista única. Aplica-se apenas às abas laterais.`,' +
+      '"settings.experimental.sidebarOrganize.projects":`Projetos`,' +
+      '"settings.experimental.sidebarOrganize.list":`Lista única`,';
+    return replaceOnce(content, "var e={", "var e={" + extra);
   }],
 ]);
 

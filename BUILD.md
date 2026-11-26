@@ -44,6 +44,7 @@ O script gera, na pasta de saída:
 | `desktop-home-categories.js` | Cartões da tela inicial |
 | `desktop-custom-cards.js` | Cartões personalizados |
 | `desktop-library.js` | Biblioteca (importar/ver arquivos) |
+| `desktop-sidebar.js` | Itens da barra lateral (biblioteca + verificação de atualização) |
 | `desktop-github-main.js` | Integração com o Git do Windows (processo principal) |
 | `desktop-github-renderer.js` | Painel do GitHub na interface |
 | `desktop-project-main.js` / `desktop-project-renderer.js` | Abertura de projetos pelo Explorer |

@@ -16,7 +16,7 @@ if ($LASTEXITCODE -ge 8) { throw 'Falha ao copiar o aplicativo.' }
 $original = Join-Path $PSScriptRoot 'app.original-2.2.5.asar'
 if (-not (Test-Path -LiteralPath $original)) { $original = Join-Path $app 'resources\app.asar' }
 $patched = Join-Path $out 'app.asar'
-node --experimental-vm-modules (Join-Path $PSScriptRoot 'patch-desktop.cjs') $original $patched
+node --no-warnings --experimental-vm-modules (Join-Path $PSScriptRoot 'patch-desktop.cjs') $original $patched
 if ($LASTEXITCODE) { throw 'Falha ao aplicar as personalizações.' }
 Copy-Item -LiteralPath $patched -Destination (Join-Path $target 'resources\app.asar') -Force
 Copy-Item -LiteralPath (Join-Path $root 'Abrir OpenCode.ps1') -Destination $stage
@@ -56,5 +56,6 @@ try {
     $footer = [BitConverter]::GetBytes([long](Get-Item -LiteralPath $stub).Length)
     $stream.Write($footer, 0, $footer.Length)
 } finally { $stream.Dispose() }
-(Get-FileHash -LiteralPath $result).Hash.ToLowerInvariant() + '  OpenCode-Infinite-PTBR-Setup.exe' |
+$hash = (& node -e "const c=require('crypto'),fs=require('fs');process.stdout.write(c.createHash('sha256').update(fs.readFileSync(process.argv[1])).digest('hex'))" $result).Trim()
+($hash + '  OpenCode-Infinite-PTBR-Setup.exe') |
     Set-Content -LiteralPath (Join-Path $out 'SHA256SUMS.txt') -Encoding ascii

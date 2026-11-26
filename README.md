@@ -59,9 +59,24 @@ Na tela inicial há atalhos prontos para começar rápido:
 
 Você também pode criar o **seu próprio cartão** clicando em **"+ Criar Card personalizado"**: dê um nome, escolha um modelo e pronto — ele fica salvo na tela inicial. Para mudar ou apagar, clique em **"Editar"** no cartão.
 
+### 🧭 Barra lateral
+
+A lateral esquerda organiza seu trabalho como no Codex:
+
+- **Projetos separados** — cada pasta vira um grupo com seus próprios chats.
+- **Chats por pasta** — as conversas de cada projeto ficam agrupadas.
+- **Nova sessão** — cria um novo chat com um clique.
+- **Buscar sessões** — encontra uma conversa rapidamente.
+
+A barra lateral fica **ativa por padrão** e pode ser recolhida ou expandida pelo botão **"Alternar barra lateral"**.
+
 ### 📚 Biblioteca
 
-Na área de projetos, o botão **"▦ Biblioteca"** abre um espaço onde você importa arquivos salvos no computador: imagens, vídeos, áudios, PDFs, textos e planilhas. Imagens, vídeos e áudios ganham **prévia**, e você pode baixar de volta qualquer arquivo importado.
+Na barra lateral, o botão **"▦ Biblioteca"** abre um espaço onde você importa arquivos salvos no computador: imagens, vídeos, áudios, PDFs, textos e planilhas. Imagens, vídeos e áudios ganham **prévia**, e você pode baixar de volta qualquer arquivo importado.
+
+### 🔄 Atualização automática
+
+Quando uma **nova versão** for publicada neste repositório, o botão **"↻ Atualização"** aparece na barra lateral. Clique nele para abrir a página da versão e baixar o instalador novo. A verificação consulta apenas as versões lançadas pelo autor do projeto.
 
 ### 🐙 GitHub
 
