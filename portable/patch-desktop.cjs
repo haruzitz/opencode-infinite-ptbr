@@ -49,7 +49,7 @@ const targets = new Map([
       + readPatch("desktop-diagnostics.js") + "\n" + content;
   }],
   ["out/renderer/assets/main-DtumKGhc.js", content => {
-    content = patchUsageLimits(content);
+    content = patchConnectionBar(content);
     content = replaceOnce(content,
       "editText(e,t,n){O.editAssistant(e,t,e=>{let t=e.content.findLast(e=>e.type===`text`);t&&n(t)})}",
       "editText(e,t,n,done){O.editAssistant(e,t,message=>{const index=message.content.findLastIndex(part=>part.type===`text`);if(index<0)return;const part=message.content[index];n(part);const notify=window.portableVoiceText;if(!notify)return;const turn=o.session.message[e]?.slice(0,ae(e).get(t)).findLast(item=>item.type===`user`)?.id;if(turn){const text=part.text;queueMicrotask(()=>notify(e,turn,t,index,text,done))}})}");
@@ -122,24 +122,17 @@ function patchSidebar(content) {
 
 }
 
-function patchUsageLimits(content) {
+function patchConnectionBar(content) {
   content = replaceOnce(content, 'aria-label=Connection></div>', 'aria-label=Conexão></div>');
-  content = replaceOnce(content,
-    '>Reset limit</button><label class="flex items-center gap-1.5"title="Rotates the IP when a limit error shows up or the connection drops. Keeps your session."><input type=checkbox>Auto-rotate</label>',
-    '>Limpar aviso</button><button type=button class="px-2.5 py-1 rounded-md text-v2-text-text-base bg-v2-background-bg-layer-02 hover:bg-v2-overlay-simple-overlay-hover">Limites de uso</button>');
-  content = replaceOnce(content, '>Settings</button><span class="ms-auto flex items-center gap-1.5 min-w-0"',
-    '>Configurações</button><span class="ms-auto flex items-center gap-1.5 min-w-0"');
-  content = replaceOnce(content, '{id:`NONE`,label:`None`}', '{id:`NONE`,label:`Nenhum`}');
-  content = replaceOnce(content, 'n?.getOptions().then(e=>eyn(e.auto)),', '');
+  content = replaceOnce(content, '>Reset limit</button>', '>Resetar limite</button>');
+  content = replaceOnce(content, 'title="Rotates the IP when a limit error shows up or the connection drops. Keeps your session."',
+    'title="Rotaciona o IP quando aparece um erro de limite ou a conexão cai. Mantém sua sessão."');
+  content = replaceOnce(content, '>Auto-rotate</label>', '>Rotação automática</label>');
   content = replaceOnce(content, 't.$$click=()=>{i(e.id),u(`Switching to ${e.label}…`,()=>n.setMode(e.id))}',
     't.$$click=()=>void u(`Verificando ${e.label}…`,async()=>{const result=await n.setMode(e.id);i(await n.getMode());return result})');
-  content = replaceOnce(content, 'let l=e=>{eyn(e),n?.getOptions().then(t=>n.setOptions({...t,auto:e}))},u=async(e,t)=>', 'let u=async(e,t)=>');
-  content = replaceOnce(content, 'd=c.nextSibling,f=d.firstChild,p=d.nextSibling,m=p.nextSibling.firstChild',
-    'd=c.nextSibling,p=d.nextSibling,m=p.nextSibling.firstChild');
-  content = replaceOnce(content, 'c.$$click=()=>void u(`Resetting limit…`,()=>n.resetLimit()),f.addEventListener(`change`,e=>l(e.currentTarget.checked)),',
-    'portableMountLimitNotice(c),c.$$click=()=>portableResetLocalLimit(t),d.$$click=()=>portableShowUsageLimits(t),');
-  content = replaceOnce(content, ',j(()=>f.checked=$vn()),e}})}', ',e}})}');
-  return readPatch("desktop-usage-limits.js") + "\n" + content;
+  content = replaceOnce(content, '>Settings</button>', '>Configurações</button>');
+  content = replaceOnce(content, '{id:`NONE`,label:`None`}', '{id:`NONE`,label:`Nenhum`}');
+  return content;
 }
 
 if (mode === "--sidebar-only") {
@@ -193,7 +186,7 @@ targets.set("out/renderer/assets/dropzone-B6PhoypJ.js", content => {
 });
 targets.set("out/renderer/assets/route-Oq3PA11J.js", content => patchLibraryTimeline(replaceOnce(content,
   'if(Ue()&&e.data.error.type===`provider.free-limit`&&r.infinite?.autoRotate(e.data.sessionID),e.data.sessionID!==a.id||n.active)return;let t=e.data.error;if(t.type===`provider.free-limit`)return Ue()?void 0:h(m,e);',
-  'if(e.data.sessionID!==a.id)return;let t=e.data.error;if(t.type===`provider.free-limit`){document.dispatchEvent(new CustomEvent("portable-provider-limit",{detail:{retryAfterMs:t.retryAfterMs}}));if(!n.active)return h(m,e);return}if(n.active)return;')));
+  'if(e.data.sessionID!==a.id)return;let t=e.data.error;if(t.type===`provider.free-limit`){window.electron?.portableDiagnostics?.noteLimit(Number.isFinite(t.retryAfterMs)?t.retryAfterMs:void 0);if(!n.active)return h(m,e);return}if(n.active)return;')));
 
 if (mode === "--library-only") {
 
