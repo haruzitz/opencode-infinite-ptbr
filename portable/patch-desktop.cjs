@@ -183,7 +183,7 @@ targets.set("out/renderer/assets/dropzone-B6PhoypJ.js", content => {
 });
 targets.set("out/renderer/assets/route-Oq3PA11J.js", content => patchLibraryTimeline(replaceOnce(content,
   'if(Ue()&&e.data.error.type===`provider.free-limit`&&r.infinite?.autoRotate(e.data.sessionID),e.data.sessionID!==a.id||n.active)return;let t=e.data.error;if(t.type===`provider.free-limit`)return Ue()?void 0:h(m,e);',
-  'if(e.data.sessionID!==a.id)return;let t=e.data.error;if(t.type===`provider.free-limit`){window.electron?.portableDiagnostics?.noteLimit(Number.isFinite(t.retryAfterMs)?t.retryAfterMs:void 0);if(!n.active)return h(m,e);return}if(n.active)return;')));
+  'if(Ue()&&e.data.error.type===`provider.free-limit`&&r.infinite?.autoRotate(e.data.sessionID),e.data.sessionID!==a.id||n.active)return;let t=e.data.error;if(t.type===`provider.free-limit`){window.electron?.portableDiagnostics?.noteLimit(Number.isFinite(t.retryAfterMs)?t.retryAfterMs:void 0);return Ue()?void 0:h(m,e);}')));
 
 if (mode === "--library-only") {
 
