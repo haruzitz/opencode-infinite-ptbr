@@ -3,16 +3,32 @@ let portableProviderLimit;
 document.addEventListener("portable-provider-limit", event => {
   const delay = event.detail?.retryAfterMs;
   const retryAt = Number.isFinite(delay) && delay >= 0 && delay <= 45 * 86400000 ? Date.now() + delay : undefined;
-  portableProviderLimit = {retryAt};
+  window.electron?.portableDiagnostics?.noteLimit(retryAt === undefined ? undefined : delay);
+  portableProviderLimit = {retryAt, notice: true};
+  document.dispatchEvent(new Event("portable-limit-notice-changed"));
 });
 
-function portableResetLocalLimit(dialog) {
-  if (portableProviderLimit?.retryAt > Date.now()) {
-    portableShowUsageLimits(dialog, "Ainda há um prazo ativo informado pelo provedor.");
-    return;
+function portableMountLimitNotice(button) {
+  const indicator = document.createElement("span");
+  indicator.textContent = " •";
+  indicator.setAttribute("aria-hidden", "true");
+  button.append(indicator);
+  function update() {
+    const notice = !!portableProviderLimit?.notice;
+    indicator.hidden = !notice;
+    button.setAttribute("aria-label", notice ? "Limpar aviso de limite recebido" : "Limpar aviso de limite");
   }
-  const message = portableProviderLimit ? "Aviso local de limite limpo." : "Nenhum aviso local para limpar.";
-  portableProviderLimit = undefined;
+  update();
+  document.addEventListener("portable-limit-notice-changed", update);
+  F(() => document.removeEventListener("portable-limit-notice-changed", update));
+}
+
+function portableResetLocalLimit(dialog) {
+  const message = portableProviderLimit?.notice ? "Aviso local limpo." : "Nenhum aviso local para limpar.";
+  if (portableProviderLimit) {
+    portableProviderLimit.notice = false;
+    document.dispatchEvent(new Event("portable-limit-notice-changed"));
+  }
   portableShowUsageLimits(dialog, message);
 }
 
@@ -26,17 +42,17 @@ function portableShowUsageLimits(dialog, message) {
     panel.append(feedback);
   }
   const description = document.createElement("p");
-  description.textContent = "Os provedores definem as cotas dos modelos gratuitos. Confira o aviso na conversa para ver o prazo informado pelo provedor.";
+  description.textContent = "O provedor define a cota e o horário de renovação. O WARP atua na conexão de rede.";
   panel.append(description);
   if (portableProviderLimit) {
     const status = document.createElement("p");
     const {retryAt} = portableProviderLimit;
     if (retryAt === undefined) {
-      status.textContent = "O último aviso de limite veio sem um horário de nova tentativa.";
+      status.textContent = "O último aviso do provedor veio sem um horário de nova tentativa.";
     } else {
       const formatted = new Intl.DateTimeFormat("pt-BR", {dateStyle: "short", timeStyle: "short"}).format(retryAt);
       status.textContent = retryAt > Date.now()
-        ? "Último prazo informado pelo provedor · " + formatted
+        ? "Horário de renovação informado pelo provedor · " + formatted
         : "O horário informado já passou. Você pode tentar enviar uma nova mensagem.";
     }
     panel.append(status);

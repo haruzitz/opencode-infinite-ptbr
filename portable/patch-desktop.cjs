@@ -23,7 +23,7 @@ const targets = new Map([
   }],
   ["out/preload/index.cjs", content => {
     return patchCatalogPreload(patchLibraryPreload(replaceOnce(content, "getPathForFile:t=>e.webUtils.getPathForFile(t)",
-      'portableGithub:{openWeb:(repo,signIn,systemBrowser)=>e.ipcRenderer.invoke("portable:github-web",repo,signIn,systemBrowser),status:directory=>e.ipcRenderer.invoke("portable:github-status",directory),login:()=>e.ipcRenderer.invoke("portable:github-login"),cancelLogin:()=>e.ipcRenderer.invoke("portable:github-cancel-login"),configureReader:()=>e.ipcRenderer.invoke("portable:github-reader")},getPathForFile:t=>e.webUtils.getPathForFile(t)')));
+      'portableGithub:{openWeb:(repo,signIn,systemBrowser)=>e.ipcRenderer.invoke("portable:github-web",repo,signIn,systemBrowser),status:directory=>e.ipcRenderer.invoke("portable:github-status",directory),login:()=>e.ipcRenderer.invoke("portable:github-login"),cancelLogin:()=>e.ipcRenderer.invoke("portable:github-cancel-login"),configureReader:()=>e.ipcRenderer.invoke("portable:github-reader")},portableDiagnostics:{noteLimit:delay=>e.ipcRenderer.send("portable:diagnostics-limit",delay)},getPathForFile:t=>e.webUtils.getPathForFile(t)')));
   }],
   ["out/main/desktop-Bu-SLvc7.js", content => {
     content = replaceOnce(content, "t?.XDG_STATE_HOME||delete process.env.XDG_STATE_HOME", "t?.XDG_STATE_HOME||process.env.OPENCODE_DESKTOP_TEST_ROOT||delete process.env.XDG_STATE_HOME");
@@ -40,9 +40,13 @@ const targets = new Map([
       "d=yield*Lh(u),f=(e,t)=>{const local=portableProjectLinks(t);if(local.length)d.receive(local);let r=t.filter(e=>e.startsWith(`opencode://`));");
     content = replaceOnce(content, "return I.on(`second-instance`,f),I.on(`open-url`,p)",
       "return d.receive(portableProjectLinks(process.argv)),I.on(`second-instance`,f),I.on(`open-url`,p)");
+    content = replaceOnce(content,
+      'exportDebug:On(e=>{let t={resolve:t=>e(v(t)),reject:t=>e(Kn(t))};return a({type:`export.requested`,reply:t}),E(()=>a({type:`export.cancelled`,reply:t}))})',
+      'exportDebug:A(portableExportDiagnostics)');
     return 'import { statSync as portableProjectStat } from "node:fs";\n'
       + 'import { isAbsolute as portableProjectIsAbsolute } from "node:path";\n'
-      + readPatch("desktop-project-main.js") + "\n" + readPatch("desktop-network.js") + "\n" + content;
+      + readPatch("desktop-project-main.js") + "\n" + readPatch("desktop-network.js") + "\n"
+      + readPatch("desktop-diagnostics.js") + "\n" + content;
   }],
   ["out/renderer/assets/main-DtumKGhc.js", content => {
     content = patchUsageLimits(content);
@@ -122,7 +126,7 @@ function patchUsageLimits(content) {
   content = replaceOnce(content, 'aria-label=Connection></div>', 'aria-label=Conexão></div>');
   content = replaceOnce(content,
     '>Reset limit</button><label class="flex items-center gap-1.5"title="Rotates the IP when a limit error shows up or the connection drops. Keeps your session."><input type=checkbox>Auto-rotate</label>',
-    '>Resetar limite local</button><button type=button class="px-2.5 py-1 rounded-md text-v2-text-text-base bg-v2-background-bg-layer-02 hover:bg-v2-overlay-simple-overlay-hover">Limites de uso</button>');
+    '>Limpar aviso</button><button type=button class="px-2.5 py-1 rounded-md text-v2-text-text-base bg-v2-background-bg-layer-02 hover:bg-v2-overlay-simple-overlay-hover">Limites de uso</button>');
   content = replaceOnce(content, '>Settings</button><span class="ms-auto flex items-center gap-1.5 min-w-0"',
     '>Configurações</button><span class="ms-auto flex items-center gap-1.5 min-w-0"');
   content = replaceOnce(content, '{id:`NONE`,label:`None`}', '{id:`NONE`,label:`Nenhum`}');
@@ -133,7 +137,7 @@ function patchUsageLimits(content) {
   content = replaceOnce(content, 'd=c.nextSibling,f=d.firstChild,p=d.nextSibling,m=p.nextSibling.firstChild',
     'd=c.nextSibling,p=d.nextSibling,m=p.nextSibling.firstChild');
   content = replaceOnce(content, 'c.$$click=()=>void u(`Resetting limit…`,()=>n.resetLimit()),f.addEventListener(`change`,e=>l(e.currentTarget.checked)),',
-    'c.$$click=()=>portableResetLocalLimit(t),d.$$click=()=>portableShowUsageLimits(t),');
+    'portableMountLimitNotice(c),c.$$click=()=>portableResetLocalLimit(t),d.$$click=()=>portableShowUsageLimits(t),');
   content = replaceOnce(content, ',j(()=>f.checked=$vn()),e}})}', ',e}})}');
   return readPatch("desktop-usage-limits.js") + "\n" + content;
 }

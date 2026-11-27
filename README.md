@@ -86,7 +86,7 @@ O **VoiceStudio** na barra lateral abre o estúdio para gravar, criar vozes e du
 2. Quando aparecer **Atualizar para**, clique no botão.
 3. A partir da versão **0.3.0**, o OpenCode baixa e verifica o pacote, instala e reabre no mesmo local. Seu perfil, suas conversas e pastas de projeto são preservados.
 
-Se estiver usando a **0.2.2**, o botão aparece como **Baixar atualização v0.3.0**. O aplicativo pede onde salvar o instalador e depois oferece **Instalar e reabrir**. A partir da 0.3.0, o aplicativo usa o pacote interno **OpenCode-Infinite-PTBR-Update.zip**.
+Se estiver usando a **0.2.2**, o botão aparece como **Baixar atualização** seguido do número da versão. O aplicativo pede onde salvar o instalador e depois oferece **Instalar e reabrir**. A partir da 0.3.0, o aplicativo usa o pacote interno **OpenCode-Infinite-PTBR-Update.zip**.
 
 ### 🐙 GitHub
 
@@ -127,6 +127,9 @@ Depois de instalar, clique com o botão direito numa pasta no Windows e escolha 
 ---
 
 ## Perguntas frequentes
+
+**"Como envio um relatório de erro?"**
+Depois que o erro aparecer, clique em **Exportar relatório de erro** na barra lateral e escolha onde salvar o arquivo `.txt`. O relatório inclui a versão, o modo de conexão, os prazos de cota disponíveis e categorias dos eventos recentes. O app gera esse resumo sem copiar as chaves, tokens ou o texto das conversas dos logs. Se o app mostrar uma tela de falha, use **Exportar logs**.
 
 **"O Windows bloqueou o instalador."**
 O instalador desta versão é distribuído sem assinatura digital. Confira se você baixou pela página oficial do projeto e compare o arquivo com o SHA-256 publicado na release.

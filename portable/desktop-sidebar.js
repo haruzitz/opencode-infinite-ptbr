@@ -32,6 +32,23 @@ function portableSidebarNavigation(dialog, platform) {
   window.addEventListener("portable-voice-settings-changed", showLocalVoiceTools);
   F(() => window.removeEventListener("portable-voice-settings-changed", showLocalVoiceTools));
   portableMountUpdater(nav, add);
+  if (platform.exportDebugLogs) {
+    const status = document.createElement("small");
+    status.className = "px-2 text-v2-text-text-muted";
+    status.setAttribute("role", "status");
+    const exportButton = add("↓", "Exportar relatório de erro", async () => {
+      exportButton.disabled = true;
+      status.textContent = "";
+      try {
+        if (await platform.exportDebugLogs()) status.textContent = "Relatório salvo. Você pode enviar o arquivo por mensagem privada.";
+      } catch {
+        status.textContent = "Não foi possível salvar o relatório. Tente outra pasta.";
+      } finally {
+        exportButton.disabled = false;
+      }
+    });
+    nav.append(status);
+  }
   return nav;
 }
 

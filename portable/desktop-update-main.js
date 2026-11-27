@@ -6,7 +6,8 @@ import { Readable as PortableUpdateReadable, Transform as PortableUpdateTransfor
 import { pipeline as portableUpdatePipeline } from "node:stream/promises";
 import { setTimeout as portableUpdateDelay } from "node:timers/promises";
 
-const portableInstalledVersion = "0.3.0";
+const portableInstalledVersion = "0.3.1";
+process.env.OPENCODE_INFINITE_VERSION = portableInstalledVersion;
 const portableReleaseApi = "https://api.github.com/repos/haruzitz/opencode-infinite-ptbr/releases";
 const portableUpdatePackageName = "OpenCode-Infinite-PTBR-Update.zip";
 let portableUpdateJob;
