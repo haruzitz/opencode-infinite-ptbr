@@ -125,14 +125,30 @@ if (-not (Get-Process -Name OpenCode -ErrorAction SilentlyContinue | Where-Objec
     $reuse = $false
     $registration = Join-Path $env:XDG_STATE_HOME 'opencode\service.json'
     if ($port -gt 0 -and (Test-Path -LiteralPath $registration -PathType Leaf)) {
+        $stalePid = $null
         try {
             $state = Get-Content -LiteralPath $registration -Raw | ConvertFrom-Json
-            $owner = Get-Process -Id $state.pid -ErrorAction Stop
-            $expectedPrefix = (Join-Path $profilePath 'desktop\cli') + '\'
-            $reuse = $state.url -eq "http://127.0.0.1:$port" -and
-                $owner.Path -and $owner.Path.StartsWith($expectedPrefix, [StringComparison]::OrdinalIgnoreCase) -and
-                ((Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction Stop).OwningProcess -contains $state.pid)
-        } catch { $reuse = $false }
+            $auth = 'Basic ' + [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes("opencode:$($state.password)"))
+            $info = Invoke-WebRequest -Uri "http://127.0.0.1:$port/api/info" -Headers @{Authorization=$auth} -UseBasicParsing -TimeoutSec 2
+            $reuse = ($info.StatusCode -eq 200) -and ($state.url -eq "http://127.0.0.1:$port")
+            if (-not $reuse) { $stalePid = $state.pid }
+        } catch {
+            try {
+                $state = Get-Content -LiteralPath $registration -Raw | ConvertFrom-Json
+                $stalePid = $state.pid
+            } catch {}
+            $reuse = $false
+        }
+        # Serviço zumbi (escuta na porta mas não responde): encerra o processo do perfil para liberar a porta.
+        if ($stalePid) {
+            try {
+                $owner = Get-Process -Id $stalePid -ErrorAction Stop
+                $expectedPrefix = (Join-Path $profilePath 'desktop\cli') + '\'
+                if ($owner.Path -and $owner.Path.StartsWith($expectedPrefix, [StringComparison]::OrdinalIgnoreCase)) {
+                    Stop-Process -Id $stalePid -Force -ErrorAction SilentlyContinue
+                }
+            } catch {}
+        }
     }
     if (-not $reuse -and ($port -le 0 -or -not (Get-AvailablePort $port))) {
         $port = Get-AvailablePort 0

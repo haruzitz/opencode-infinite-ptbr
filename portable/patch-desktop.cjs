@@ -27,15 +27,12 @@ const targets = new Map([
   }],
   ["out/main/desktop-Bu-SLvc7.js", content => {
     content = replaceOnce(content, "t?.XDG_STATE_HOME||delete process.env.XDG_STATE_HOME", "t?.XDG_STATE_HOME||process.env.OPENCODE_DESKTOP_TEST_ROOT||delete process.env.XDG_STATE_HOME");
-    content = replaceOnce(content, "auto:e.auto===!0,country:", "auto:!1,warpPort:portableNetworkPort(e.warpPort)?e.warpPort:void 0,country:");
+    content = replaceOnce(content, "auto:e.auto===!0,country:", "auto:e.auto===!0,warpPort:portableNetworkPort(e.warpPort)?e.warpPort:void 0,country:");
     content = replaceOnce(content, 'if(e===`WARP`)return Sv;if(e===`TOR`)',
       'if(e===`WARP`)return `http://127.0.0.1:${$().warpPort??xv}`;if(e===`TOR`)');
     content = replaceOnce(content, 'c=e=>s(w(function*(){return yield*i,yield*N(()=>zv(e)),yield*o(()=>_y(e))}))',
       'c=e=>s(w(function*(){const target=yield*N(()=>portablePrepareNetworkMode(e,e===`PROXY`?Mv($().custom??``):void 0));if(target&&!target.ok)return{ok:!1,message:target.message};yield*i;if(target){yield*N(()=>{if(e===`WARP`)$().warpPort=target.port;else $().proxy=target.proxy;return zv(e)});yield*a;return{ok:!0,message:target.message}}yield*N(()=>zv(e));return yield*o(()=>_y(e))}))');
     content = replaceOnce(content, 'InfiniteCheckIp:()=>A(by)', 'InfiniteCheckIp:()=>A(()=>portableSelectedProxyStatus(Rv()))');
-    content = replaceOnce(content, "InfiniteResetLimit:l,InfiniteRestoreSession:u,InfiniteAutoRotate:({sessionID:e})=>E(()=>f(`limit reached`,e))",
-      "InfiniteResetLimit:()=>E(()=>({ok:!1,message:`Confira os limites de uso informados pelo provedor.`})),InfiniteRestoreSession:u,InfiniteAutoRotate:()=>E(()=>void 0)");
-    content = replaceOnce(content, "InfiniteSetOptions:e=>A(()=>Iv(e).then(jv))", "InfiniteSetOptions:e=>A(()=>Iv({...e,auto:!1}).then(jv))");
     content = replaceOnce(content, "d=yield*Lh(u),f=(e,t)=>{let r=t.filter(e=>e.startsWith(`opencode://`));",
       "d=yield*Lh(u),f=(e,t)=>{const local=portableProjectLinks(t);if(local.length)d.receive(local);let r=t.filter(e=>e.startsWith(`opencode://`));");
     content = replaceOnce(content, "return I.on(`second-instance`,f),I.on(`open-url`,p)",
