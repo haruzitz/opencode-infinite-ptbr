@@ -1,7 +1,9 @@
-﻿$ErrorActionPreference = 'Stop'
+﻿param([string]$InstallRoot = (Split-Path -Parent $PSScriptRoot))
+
+$ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName PresentationFramework
 
-$root = Split-Path -Parent $PSScriptRoot
+$root = $InstallRoot
 $profilePath = Join-Path $root 'profile'
 $configPath = Join-Path $profilePath 'config\opencode\opencode.json'
 $secretDirectory = Join-Path $profilePath 'secrets'
@@ -57,8 +59,13 @@ $save.Add_Click({
 
         $config = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
         $server = $config.mcp.servers.github
-        $server | Add-Member -NotePropertyName oauth -NotePropertyValue $false -Force
-        $server.headers | Add-Member -NotePropertyName Authorization -NotePropertyValue 'Bearer {env:OPENCODE_GITHUB_READ_TOKEN}' -Force
+        if ($server.type -eq 'remote') {
+            $server | Add-Member -NotePropertyName oauth -NotePropertyValue $false -Force
+            if (-not $server.headers) {
+                $server | Add-Member -NotePropertyName headers -NotePropertyValue ([pscustomobject]@{}) -Force
+            }
+            $server.headers | Add-Member -NotePropertyName Authorization -NotePropertyValue 'Bearer {env:OPENCODE_GITHUB_READ_TOKEN}' -Force
+        }
         New-Item -ItemType Directory -Path $secretDirectory -Force | Out-Null
         $secret | ConvertFrom-SecureString | Set-Content -LiteralPath $secretPath -Encoding ascii
         $updatedConfig = $config | ConvertTo-Json -Depth 15

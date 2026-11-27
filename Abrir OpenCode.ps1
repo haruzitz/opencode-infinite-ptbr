@@ -24,6 +24,7 @@ if ($Project) {
 }
 
 $profilePath = Join-Path $PSScriptRoot 'profile'
+$env:OPENCODE_PORTABLE_ROOT = $PSScriptRoot
 $env:OPENCODE_DESKTOP_TEST_ROOT = $profilePath
 $env:APPDATA = Join-Path $profilePath 'appdata'
 $env:LOCALAPPDATA = Join-Path $profilePath 'localappdata'
@@ -54,6 +55,52 @@ if (Test-Path -LiteralPath $githubCredential -PathType Leaf) {
 $appPath = Join-Path $PSScriptRoot 'apps\OpenCode'
 $app = Join-Path $appPath 'OpenCode.exe'
 
+function Update-ConnectorDefaults([string]$configDirectory) {
+    $defaultsPath = Join-Path $appPath 'resources\portable\mcp-defaults.json'
+    if (-not (Test-Path -LiteralPath $defaultsPath -PathType Leaf)) { return }
+    $path = Join-Path $configDirectory 'opencode.json'
+    # Keep custom JSONC configurations authoritative.
+    if (Test-Path -LiteralPath (Join-Path $configDirectory 'opencode.jsonc')) { return }
+    $pending = $null
+    try {
+        $exists = Test-Path -LiteralPath $path -PathType Leaf
+        $settings = if ($exists) { Get-Content -LiteralPath $path -Raw | ConvertFrom-Json } else { [pscustomobject]@{} }
+        if ($settings -isnot [pscustomobject]) { return }
+        $defaults = Get-Content -LiteralPath $defaultsPath -Raw | ConvertFrom-Json
+        if (-not $settings.PSObject.Properties['mcp']) {
+            $settings | Add-Member -NotePropertyName mcp -NotePropertyValue ([pscustomobject]@{})
+        }
+        if ($settings.mcp -isnot [pscustomobject]) { return }
+        if (-not $settings.mcp.PSObject.Properties['servers']) {
+            $settings.mcp | Add-Member -NotePropertyName servers -NotePropertyValue ([pscustomobject]@{})
+        }
+        $servers = $settings.mcp.servers
+        if ($servers -isnot [pscustomobject]) { return }
+        $changed = $false
+        foreach ($default in $defaults.PSObject.Properties) {
+            if ($servers.PSObject.Properties[$default.Name]) { continue }
+            $servers | Add-Member -NotePropertyName $default.Name -NotePropertyValue $default.Value
+            $changed = $true
+        }
+        $github = $servers.github
+        if ($github.type -eq 'remote' -and $github.url -eq 'https://api.githubcopilot.com/mcp/' -and
+            $github.enabled -ne $false -and -not $github.PSObject.Properties['oauth'] -and
+            -not ($github.headers.PSObject.Properties.Name | Where-Object { $_ -notin 'X-MCP-Readonly','X-MCP-Toolsets' })) {
+            $servers.github = $defaults.github
+            $changed = $true
+        }
+        if (-not $changed) { return }
+        $pending = $path + '.' + [Guid]::NewGuid().ToString('N') + '.tmp'
+        [IO.File]::WriteAllText($pending, ($settings | ConvertTo-Json -Depth 100), [Text.UTF8Encoding]::new($false))
+        if ($exists) { [IO.File]::Replace($pending, $path, [System.Management.Automation.Language.NullString]::Value) }
+        else { [IO.File]::Move($pending, $path) }
+    } catch {
+        Write-Warning 'As configurações de conectores foram preservadas.'
+    } finally {
+        if ($pending -and (Test-Path -LiteralPath $pending)) { Remove-Item -LiteralPath $pending -Force }
+    }
+}
+
 function Get-AvailablePort([int]$port) {
     $listener = [Net.Sockets.TcpListener]::new([Net.IPAddress]::Loopback, $port)
     try {
@@ -68,6 +115,7 @@ function Get-AvailablePort([int]$port) {
 if (-not (Get-Process -Name OpenCode -ErrorAction SilentlyContinue | Where-Object Path -EQ $app)) {
     $configDirectory = Join-Path $env:XDG_CONFIG_HOME 'opencode'
     New-Item -ItemType Directory -Force -Path $configDirectory | Out-Null
+    Update-ConnectorDefaults $configDirectory
     $configPath = Join-Path $configDirectory 'service.json'
     $configuration = [pscustomobject]@{}
     if (Test-Path -LiteralPath $configPath -PathType Leaf) {

@@ -31,10 +31,10 @@ O script gera, na pasta de saída:
 | Arquivo | Descrição |
 |---|---|
 | `OpenCode-Infinite-PTBR-Setup.exe` | Instalador único para distribuição |
-| `payload.zip` | Conteúdo compactado que o instalador extrai |
+| `OpenCode-Infinite-PTBR-Update.zip` | Pacote usado pelo instalador e pelo atualizador interno |
 | `installer-stub.exe` | Executável do instalador (sem o payload) |
 | `app.asar` | Aplicativo com as personalizações aplicadas |
-| `SHA256SUMS.txt` | Hash SHA-256 do instalador |
+| `SHA256SUMS.txt` | Hashes SHA-256 do instalador e do ZIP |
 
 ## Estrutura dos patches
 
@@ -51,12 +51,13 @@ O script gera, na pasta de saída:
 | `Installer.cs` | Instalador (seleciona pasta, extrai e registra atalhos) |
 | `Registrar atalhos.ps1` | Cria atalhos e a opção de menu de contexto |
 | `Configurar leitura GitHub.ps1` | Janela para salvar o token de leitura |
+| `update-worker.exe` | Executável auxiliar gerado do mesmo código do instalador para aplicar o ZIP |
 
 ## Como publicar uma nova versão
 
 1. Rode o script de build acima.
 2. Confira o `SHA256SUMS.txt` gerado.
-3. Crie uma **Release** no GitHub e anexe o `OpenCode-Infinite-PTBR-Setup.exe` e o `SHA256SUMS.txt`.
+3. Crie uma release no GitHub e anexe `OpenCode-Infinite-PTBR-Setup.exe`, `OpenCode-Infinite-PTBR-Update.zip` e `SHA256SUMS.txt`.
 4. Atualize o link de download no [README.md](README.md), se necessário.
 
 Os binários (`*.exe`, `*.zip`, `*.asar`) não vão para o repositório Git — ficam apenas na Release (veja o `.gitignore`).

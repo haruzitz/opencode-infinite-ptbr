@@ -1,0 +1,50 @@
+[
+  {
+    "id": "superpowers",
+    "name": "Superpowers",
+    "description": "Planejamento, depuração, revisão e testes guiados.",
+    "repository": "obra/superpowers",
+    "revision": "22f0b463e7a5e579904dd6211a520321035526f7",
+    "entry": "using-superpowers"
+  },
+  {
+    "id": "ponytail",
+    "name": "Ponytail",
+    "description": "Simplifica a implementação e evita complexidade desnecessária.",
+    "repository": "dietrichgebert/ponytail",
+    "revision": "ebd8654c2c627f721eb8f9c0d1bd4090a29f9e10",
+    "entry": "ponytail"
+  },
+  {
+    "id": "caveman",
+    "name": "Caveman",
+    "description": "Deixa as respostas mais curtas e diretas.",
+    "repository": "juliusbrussee/caveman",
+    "revision": "e74a11ccdb38b98d15c9f9545787c907dd15f0ab",
+    "entry": "caveman"
+  },
+  {
+    "id": "impeccable",
+    "name": "Impeccable",
+    "description": "Cria, revisa e refina interfaces com atenção a tipografia e acessibilidade.",
+    "repository": "pbakaus/impeccable",
+    "revision": "2fc5e1459efbbf06d92c7306517c286bf12490cf",
+    "entry": "impeccable"
+  },
+  {
+    "id": "frontend-design",
+    "name": "Frontend Design",
+    "description": "Cria interfaces com direção visual e código de frontend.",
+    "repository": "anthropics/skills",
+    "revision": "e4bb5d960d87126ff3b3a8af1a104b7db67560ba",
+    "entry": "frontend-design"
+  },
+  {
+    "id": "find-skills",
+    "name": "Find Skills",
+    "description": "Ajuda a localizar skills para uma tarefa.",
+    "repository": "vercel-labs/skills",
+    "revision": "e7fd0e9e52f029fe87729d8185cb8caf7049f678",
+    "entry": "find-skills"
+  }
+]

@@ -1,15 +1,58 @@
+function portableDismissToolPage(host = document.querySelector("[data-portable-library-host]")) {
+  host?.querySelector(":scope > [data-portable-tool-page]")?.dispatchEvent(new Event("portable-page-dismiss"));
+}
+
+function portableInstallToolHost(host, layout) {
+  const style = document.createElement("style");
+  style.textContent =
+    "[data-portable-library-host] { position:relative; } " +
+    "[data-portable-library-host]:has(> [data-portable-tool-page]) > [data-portable-native-page] " +
+    "{ visibility:hidden; isolation:isolate; }";
+  host.append(style);
+  let previous;
+  M(() => {
+    const route = layout.route();
+    const home = route.type === "home" ? layout.home.selection() : null;
+    const key = JSON.stringify([route.type, route.server, route.sessionId, route.draftID, home?.server, home?.directory]);
+    if (previous !== undefined && key !== previous) portableDismissToolPage(host);
+    previous = key;
+  });
+  const onClick = event => {
+    if (event.target.closest?.("[data-action=vertical-tabs-home], [data-action=vertical-tabs-new-session], button[data-project-action]")) {
+      portableDismissToolPage(host);
+    }
+  };
+  document.addEventListener("click", onClick, true);
+  F(() => {
+    document.removeEventListener("click", onClick, true);
+    portableDismissToolPage(host);
+  });
+}
+
+function portableMountToolPage(host, panel) {
+  const content = host.querySelector(":scope > [data-portable-native-page]");
+  const wasInert = content?.inert;
+  panel.dataset.portableToolPage = "";
+  host.append(panel);
+  if (content) content.inert = true;
+  return () => {
+    panel.remove();
+    if (content) content.inert = wasInert;
+  };
+}
+
 function portableLibrary() {
   const host = document.querySelector("[data-portable-library-host]");
   if (!host) return;
   const existing = host.querySelector("[data-portable-library-page]");
   if (existing) { existing.querySelector("h2").focus(); return; }
+  portableDismissToolPage(host);
   const panel = document.createElement("section");
   panel.className = "portable-library";
   panel.dataset.portableLibraryPage = "";
   panel.setAttribute("aria-label", "Biblioteca");
   const stylesheet = document.createElement("style");
   stylesheet.textContent = `
-    [data-portable-library-host] { position: relative; }
     [data-portable-library-page].portable-library { position: absolute; inset: 0; z-index: 10; max-height: none; padding: clamp(18px, 4vw, 48px); background: var(--v2-surface-surface-base, #171922); color: var(--v2-text-text-base, #f1f2f8); }
     [data-portable-library-page] header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 24px; }
     [data-portable-library-page] h2 { font-size: 28px; margin: 0; }
@@ -295,15 +338,17 @@ function portableLibrary() {
   }, {root: panel});
   const previousFocus = document.activeElement;
   const leave = (restoreFocus = true) => {
+    if (closed) return;
     closed = true;
     previews.disconnect();
     release();
     historyUrls.forEach(url => URL.revokeObjectURL(url));
     void db.then(database => database.close(), () => {});
-    panel.remove();
+    unmount();
     if (restoreFocus) previousFocus?.focus();
   };
   close.addEventListener("click", leave);
+  panel.addEventListener("portable-page-dismiss", () => leave(false), {once: true});
   panel.addEventListener("keydown", event => {
     if (event.key === "Escape" && !viewer.open) { event.stopPropagation(); leave(); }
   });
@@ -313,7 +358,7 @@ function portableLibrary() {
   header.append(heading, actions);
   panel.append(stylesheet, header, input, nav, status, gallery, footer, viewer);
   render();
-  host.append(panel);
+  const unmount = portableMountToolPage(host, panel);
   heading.focus();
   void history().catch(() => { status.textContent = "Não foi possível ler o histórico local."; });
   void load().catch(failure);

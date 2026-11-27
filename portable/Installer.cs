@@ -2,6 +2,9 @@ using System;
 using System.IO;
 using System.IO.Compression;
 using System.Diagnostics;
+using System.ComponentModel;
+using System.Drawing;
+using System.Security.Cryptography;
 using System.Windows.Forms;
 
 internal static class Installer
@@ -10,45 +13,73 @@ internal static class Installer
     private static void Main(string[] args)
     {
         Application.EnableVisualStyles();
+        if (args.Length == 5 && args[0] == "--apply-zip")
+        {
+            var destination = Path.GetFullPath(args[1]);
+            var package = Path.GetFullPath(args[3]);
+            try { UpdateExisting(destination, int.Parse(args[2]), package, args[4]); }
+            catch (Exception error)
+            {
+                Environment.ExitCode = 1;
+                File.AppendAllText(Path.Combine(destination, ".updates", "install.log"), error.Message + Environment.NewLine);
+            }
+            return;
+        }
         if (args.Length == 3 && args[0] == "--update")
         {
             try { UpdateExisting(args[1], int.Parse(args[2])); }
-            catch (Exception error) { MessageBox.Show(error.Message, "OpenCode Infinite PT-BR"); }
+            catch (Exception error) { Environment.ExitCode = 1; MessageBox.Show(error.Message, "OpenCode Infinite PT-BR"); }
             return;
         }
         using (var picker = new FolderBrowserDialog())
         {
             picker.Description = "Selecione a pasta que receberá OpenCode Infinite PT-BR.";
             if (picker.ShowDialog() != DialogResult.OK) return;
-            var destination = Path.Combine(picker.SelectedPath, "OpenCode Infinite PT-BR");
-            string staging = null;
-            string payload = null;
-            try
-            {
-                if (Directory.Exists(destination) || File.Exists(destination))
-                    throw new IOException("A pasta de destino já existe. Escolha outro local.");
-                staging = destination + "." + Guid.NewGuid().ToString("N") + ".tmp";
-                Directory.CreateDirectory(staging);
-                payload = staging + ".zip";
-                Extract(payload, staging);
-                Directory.Move(staging, destination);
-                staging = null;
-                var launcher = Path.Combine(destination, "portable", "Registrar atalhos.ps1");
-                var shell = Path.Combine(Environment.SystemDirectory, "WindowsPowerShell", "v1.0", "powershell.exe");
-                Process.Start(new ProcessStartInfo(shell,
-                    "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File \"" + launcher + "\"") {
-                    UseShellExecute = false, CreateNoWindow = true, WorkingDirectory = destination
-                });
-            }
-            catch (Exception error)
-            {
-                MessageBox.Show(error.Message, "OpenCode Infinite PT-BR");
-            }
-            finally
-            {
-                if (payload != null && File.Exists(payload)) File.Delete(payload);
-                if (staging != null && Directory.Exists(staging)) Directory.Delete(staging, true);
-            }
+            Install(Path.Combine(picker.SelectedPath, "OpenCode Infinite PT-BR"));
+        }
+    }
+
+    private static void Install(string destination)
+    {
+        using (var progress = new Form { Text = "Instalando OpenCode Infinite PT-BR", StartPosition = FormStartPosition.CenterScreen,
+            ClientSize = new Size(420, 90), FormBorderStyle = FormBorderStyle.FixedDialog, ControlBox = false })
+        using (var worker = new BackgroundWorker())
+        {
+            progress.Controls.Add(new Label { Text = "Instalando… O OpenCode abrirá ao terminar.", AutoSize = true,
+                Location = new Point(16, 18) });
+            progress.Controls.Add(new ProgressBar { Style = ProgressBarStyle.Marquee,
+                Location = new Point(16, 48), Size = new Size(388, 18) });
+            worker.DoWork += (sender, args) => InstallFiles(destination);
+            worker.RunWorkerCompleted += (sender, args) => {
+                if (args.Error != null) MessageBox.Show(progress, args.Error.Message, "OpenCode Infinite PT-BR");
+                progress.Close();
+            };
+            progress.Shown += (sender, args) => worker.RunWorkerAsync();
+            Application.Run(progress);
+        }
+    }
+
+    private static void InstallFiles(string destination)
+    {
+        destination = Path.GetFullPath(destination);
+        if (Directory.Exists(destination) || File.Exists(destination))
+            throw new IOException("Já existe um OpenCode nessa pasta. Use Verificar atualizações no aplicativo ou escolha outro local.");
+        var staging = destination + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        var payload = staging + ".zip";
+        try
+        {
+            Directory.CreateDirectory(staging);
+            Extract(payload, staging);
+            var register = Path.Combine(staging, "portable", "Registrar atalhos.ps1");
+            if (!File.Exists(register) || !File.Exists(Path.Combine(staging, "apps", "OpenCode", "OpenCode.exe")))
+                throw new IOException("Instalador incompleto.");
+            Directory.Move(staging, destination);
+            Launch(destination, Path.Combine(destination, "portable", "Registrar atalhos.ps1"));
+        }
+        finally
+        {
+            if (File.Exists(payload)) File.Delete(payload);
+            if (Directory.Exists(staging)) Directory.Delete(staging, true);
         }
     }
 
@@ -75,16 +106,24 @@ internal static class Installer
         ZipFile.ExtractToDirectory(payload, staging);
     }
 
-    private static void UpdateExisting(string destination, int processId)
+    private static void UpdateExisting(string destination, int processId, string package = null, string expectedHash = null)
     {
         destination = Path.GetFullPath(destination);
         var launcher = Path.Combine(destination, "Abrir OpenCode.ps1");
         var apps = Path.Combine(destination, "apps", "OpenCode");
         if (!File.Exists(launcher) || !File.Exists(Path.Combine(apps, "OpenCode.exe")))
             throw new IOException("Instalação portátil não localizada.");
-        var staging = Path.Combine(destination, ".update-" + Guid.NewGuid().ToString("N"));
+        var staging = package == null ? Path.Combine(destination, ".update-" + Guid.NewGuid().ToString("N"))
+            : Path.GetDirectoryName(package);
+        if (package != null &&
+            (!string.Equals(Path.GetDirectoryName(staging), Path.Combine(destination, ".updates"), StringComparison.OrdinalIgnoreCase) ||
+             !Path.GetFileName(staging).StartsWith("download-", StringComparison.Ordinal) ||
+             !string.Equals(Path.GetFileName(package), "payload.zip", StringComparison.OrdinalIgnoreCase)))
+            throw new IOException("Pacote fora da pasta de atualização.");
+        foreach (var directory in new[] {destination, apps, staging})
+            if (Directory.Exists(directory) && (File.GetAttributes(directory) & FileAttributes.ReparsePoint) != 0)
+                throw new IOException("A atualização encontrou uma pasta redirecionada.");
         Directory.CreateDirectory(staging);
-        var payload = Path.Combine(staging, "payload.zip");
         var extracted = Path.Combine(staging, "new");
         Directory.CreateDirectory(extracted);
         var previousApp = Path.Combine(staging, "previous-app");
@@ -92,15 +131,30 @@ internal static class Installer
         bool appMoved = false, newAppMoved = false, launcherReplaced = false, preserveBackup = false;
         try
         {
-            Extract(payload, extracted);
+            if (package == null) Extract(Path.Combine(staging, "payload.zip"), extracted);
+            else
+            {
+                using (var file = File.OpenRead(package))
+                using (var hash = SHA256.Create())
+                {
+                    var actual = BitConverter.ToString(hash.ComputeHash(file)).Replace("-", "");
+                    if (!string.Equals(expectedHash, actual, StringComparison.OrdinalIgnoreCase))
+                        throw new IOException("A integridade do pacote não confere.");
+                }
+                ZipFile.ExtractToDirectory(package, extracted);
+            }
+            var newApps = Path.Combine(extracted, "apps", "OpenCode");
+            if (!File.Exists(Path.Combine(newApps, "OpenCode.exe")) ||
+                !File.Exists(Path.Combine(newApps, "resources", "app.asar")) ||
+                !File.Exists(Path.Combine(newApps, "resources", "portable", "update-worker.exe")) ||
+                !File.Exists(Path.Combine(extracted, "Abrir OpenCode.ps1"))) throw new IOException("Instalador incompleto.");
+            if (package != null) File.WriteAllText(Path.Combine(staging, "ready"), "ready");
             try
             {
                 using (var running = Process.GetProcessById(processId))
                     if (!running.WaitForExit(30000)) throw new IOException("Feche o OpenCode e tente novamente.");
             }
             catch (ArgumentException) { }
-            var newApps = Path.Combine(extracted, "apps", "OpenCode");
-            if (!File.Exists(Path.Combine(newApps, "OpenCode.exe"))) throw new IOException("Instalador incompleto.");
             for (var attempt = 0; ; attempt++)
             {
                 try { Directory.Move(apps, previousApp); break; }
@@ -120,6 +174,11 @@ internal static class Installer
             if (newAppMoved) Directory.Move(apps, Path.Combine(staging, "failed-app"));
             if (appMoved) Directory.Move(previousApp, apps);
             preserveBackup = false;
+            try {
+                using (var running = Process.GetProcessById(processId))
+                    if (running.HasExited) Launch(destination, launcher);
+            }
+            catch (ArgumentException) { Launch(destination, launcher); }
             throw;
         }
         finally

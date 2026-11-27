@@ -8,24 +8,13 @@ Você não precisa saber programar para usar. É só digitar o que quer fazer, e
 
 ## Como instalar (passo a passo)
 
-### 1. Baixe o instalador
+1. Baixe o [instalador para Windows](https://github.com/haruzitz/opencode-infinite-ptbr/releases/latest/download/OpenCode-Infinite-PTBR-Setup.exe).
+2. Abra o arquivo e escolha a pasta em que quer instalar. Você pode escolher outro disco, como `D:`.
+3. Aguarde a instalação. O aplicativo abre sozinho e cria o atalho **OpenCode Infinite PT-BR** na Área de Trabalho e no Menu Iniciar.
 
-1. Acesse a página de downloads: <https://github.com/haruzitz/opencode-infinite-ptbr/releases>
-2. Na versão mais recente, clique em **`OpenCode-Infinite-PTBR-Setup.exe`** para baixar.
+O instalador cria a subpasta **OpenCode Infinite PT-BR** dentro do local escolhido. Se você já usa o aplicativo, abra **Verificar atualizações** na barra lateral.
 
-> Download direto da versão mais recente:
-> <https://github.com/haruzitz/opencode-infinite-ptbr/releases/latest/download/OpenCode-Infinite-PTBR-Setup.exe>
-
-### 2. Execute o instalador
-
-1. Abra o arquivo baixado (geralmente fica na pasta **Downloads**).
-2. Se o Windows mostrar o aviso azul do **SmartScreen** ("O Windows protegeu o seu PC"), clique em **"Mais informações"** e depois em **"Executar assim mesmo"**. Esse aviso aparece porque o programa não tem assinatura digital paga — é normal em projetos independentes.
-3. Escolha a **pasta** onde o OpenCode vai ficar. Para guardar seus dados em outro disco (ex.: `D:`), selecione uma pasta nesse disco.
-4. Aguarde. O instalador cria uma subpasta, um perfil novo e **atalhos** na Área de Trabalho e no Menu Iniciar.
-
-### 3. Abra o aplicativo
-
-Depois de instalado, abra pelo atalho **"OpenCode Infinite PT-BR"**.
+Cada publicação inclui os hashes dos arquivos e as instruções de atualização. [Versões publicadas](https://github.com/haruzitz/opencode-infinite-ptbr/releases)
 
 ---
 
@@ -35,7 +24,7 @@ Ao abrir, você verá a tela de boas-vindas com cartões de sugestão. Faça nes
 
 1. **Adicione uma pasta de projeto** — na área **Projetos**, adicione a pasta onde você vai trabalhar.
 2. **Escolha um cartão ou um modelo** — clique num cartão (ex.: **Programação**) para abrir uma conversa já preparada para aquele tipo de tarefa.
-3. **(Opcional) Conecte o GitHub** — clique no ícone do GitHub para conectar sua conta e acompanhar repositórios.
+3. **(Opcional) Conecte o GitHub** em **Plugins → GitHub → Gerenciar** para acompanhar seus repositórios.
 
 Se você se perder, um guia **"Primeiros passos"** fica disponível na área de projetos até você escolher ocultá-lo.
 
@@ -74,23 +63,43 @@ A barra lateral fica **ativa por padrão** e pode ser recolhida ou expandida pel
 
 **Biblioteca** abre uma página do aplicativo com abas de imagens, documentos, vídeos e áudios. A grade exibe até 12 itens por página. Você pode visualizar imagens, importar e baixar arquivos, e usar **Mostrar na conversa** nos itens vinculados ao histórico. Os documentos criados em uma pasta de projeto podem ser localizados pelo Explorer.
 
+### Plugins, skills e ferramentas
+
+Abra **Plugins** na barra lateral. Os cartões exibem o status da conexão, como **Conectado** ou **Login pendente**.
+
+- **GitHub** permite consultar repositórios com a IA e abrir o site dentro do app ou no seu navegador.
+- **Microsoft Learn** traz documentação oficial de Windows, .NET e Azure. **Playwright** aparece como conectado quando seu servidor MCP está configurado.
+- **Supabase** pode ser conectado a um projeto para consultar a base de dados em modo de leitura.
+- Em **Skills**, você pode instalar guias como Superpowers, Ponytail e Frontend Design. Em **Ferramentas**, é possível instalar ou abrir o Cloudflare One Client.
+
+### Voz na nuvem ou no computador
+
+O microfone preenche o campo de texto com o ditado. O botão de conversa por voz permite falar com a IA e ouvir a resposta. A configuração de voz separa o modo **Nuvem** do modo **Local**.
+
+Para usar o modo local, vá a **Plugins → VoiceStudio → Instalar**. O OpenCode baixa e verifica o instalador oficial. Na primeira abertura, o estúdio ajuda a preparar os modelos de voz. Reserve cerca de 10 GB e considere que o processamento local usa recursos do seu computador.
+
+O **VoiceStudio** na barra lateral abre o estúdio para gravar, criar vozes e dublar. Em **Plugins → VoiceStudio → Configurar**, você pode testar a voz e escolher **Usar no OpenCode**.
+
 ### Atualizações do fork
 
-A partir da versão **0.2.2**, a barra lateral consulta as releases estáveis publicadas por Haruzitz. Você também pode clicar em **Verificar atualizações**. Se houver uma versão mais nova, **Baixar atualização** salva o instalador pelo próprio OpenCode e verifica o SHA-256 informado pelo GitHub. Você pode então instalar e reabrir o aplicativo, preservando o perfil, as conversas e os projetos.
+1. Abra **Verificar atualizações** na barra lateral.
+2. Quando aparecer **Atualizar para**, clique no botão.
+3. A partir da versão **0.3.0**, o OpenCode baixa e verifica o pacote, instala e reabre no mesmo local. Seu perfil, suas conversas e pastas de projeto são preservados.
 
-Versões anteriores usam o aviso que abre a página da release. A nova opção de download passa a aparecer após instalar a v0.2.2 e publicar uma release posterior.
+Se estiver usando a **0.2.2**, o próprio aplicativo pede onde salvar o instalador e depois oferece **Instalar e reabrir**. Nas seguintes, o pacote interno **OpenCode-Infinite-PTBR-Update.zip** é usado pelo aplicativo.
 
 ### 🐙 GitHub
 
-O ícone do GitHub abre um painel com atalhos para trabalhar com seus repositórios:
+Abra **Plugins → GitHub → Gerenciar** para acessar seus repositórios.
 
-- **Conectar conta** — faz login no GitHub usando o Git instalado no Windows.
-- **Abrir aba do GitHub** — abre o GitHub dentro do próprio OpenCode.
+- **Conectar Git do Windows** — autoriza as operações do Git e guarda a credencial no Gerenciador de Credenciais do Windows.
+- **Entrar no GitHub dentro do OpenCode** — abre a janela de navegação do aplicativo. Entre uma vez nessa janela para gravar a sessão no perfil do OpenCode. O painel mostra a sessão web e o Git do Windows separadamente.
+- **Entrar com Google no navegador padrão** abre a página oficial do GitHub no perfil habitual do navegador. Lá, escolha **Continuar com Google**. A sessão criada nesse fluxo fica no navegador.
 - **Acompanhar com a IA** — pede um resumo de issues, pull requests e execuções do repositório.
 - **Preparar envio com a IA** — a IA confere as alterações e prepara o envio (commit/push), pedindo a sua confirmação antes de qualquer mudança.
 - **Configurar leitura da IA** — cola um token de leitura para a IA consultar o repositório (veja abaixo).
 
-> A aba GitHub precisa do **Git for Windows** instalado. Baixe em <https://git-scm.com/download/win>.
+> A conexão do Git do Windows precisa do **Git for Windows** instalado. Baixe em <https://git-scm.com/download/win>.
 
 #### Como configurar a leitura da IA (token)
 
@@ -120,7 +129,7 @@ Depois de instalar, clique com o botão direito numa pasta no Windows e escolha 
 ## Perguntas frequentes
 
 **"O Windows bloqueou o instalador."**
-Clique em "Mais informações" → "Executar assim mesmo". É o aviso do SmartScreen para programas sem assinatura digital.
+O instalador desta versão é distribuído sem assinatura digital. Confira se você baixou pela página oficial do projeto e compare o arquivo com o SHA-256 publicado na release.
 
 **"O antivírus acusou o arquivo."**
 Como o programa não tem assinatura digital, alguns antivírus podem alertar. O arquivo de distribuição é independente e gerado a partir do código deste repositório. Confira o SHA-256 no arquivo `SHA256SUMS.txt` publicado junto com o instalador.
@@ -146,4 +155,6 @@ Quer modificar, recompilar ou gerar o instalador? Consulte o [BUILD.md](BUILD.md
 
 Baseado no [OpenCode Desktop 2.2.5 para Windows x64](https://github.com/anomalyco/opencode/tree/v2.2.5), sob a [licença MIT](LICENSE). O binário distribuído inclui o aplicativo-base e os avisos de terceiros.
 
-A distribuição inicial é uma prévia. A validação funcional em um Windows limpo está pendente.
+## Próximas versões
+
+- Adição de modelos de IA locais, com instalação opcional.

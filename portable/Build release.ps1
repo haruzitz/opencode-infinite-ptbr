@@ -22,29 +22,51 @@ Copy-Item -LiteralPath $patched -Destination (Join-Path $target 'resources\app.a
 Copy-Item -LiteralPath (Join-Path $root 'Abrir OpenCode.ps1') -Destination $stage
 $setup = Join-Path $stage 'portable'
 New-Item -ItemType Directory -Path $setup | Out-Null
-foreach ($name in @('Registrar atalhos.ps1', 'Configurar leitura GitHub.ps1')) {
-    Copy-Item -LiteralPath (Join-Path $PSScriptRoot $name) -Destination $setup
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'Registrar atalhos.ps1') -Destination $setup
+$desktopHelpers = Join-Path $target 'resources\portable'
+New-Item -ItemType Directory -Path $desktopHelpers -Force | Out-Null
+foreach ($name in @('Configurar leitura GitHub.ps1')) {
+    [IO.File]::WriteAllText((Join-Path $desktopHelpers $name), [IO.File]::ReadAllText((Join-Path $PSScriptRoot $name)),
+        [Text.UTF8Encoding]::new($true))
 }
+$githubDir = Join-Path $target 'resources\github-mcp'
+$githubZip = Join-Path $out 'github-mcp-server_Windows_x86_64.zip'
+$githubSha = '15b658171f82622975f9d72037c7ad1ce8a5124cd1d516925c19c908a5b646d8'
+if (-not (Test-Path -LiteralPath $githubZip)) {
+    Invoke-WebRequest -UseBasicParsing -TimeoutSec 90 -OutFile $githubZip -Uri 'https://github.com/github/github-mcp-server/releases/download/v2.3.0/github-mcp-server_Windows_x86_64.zip'
+}
+if ((Get-FileHash -LiteralPath $githubZip).Hash -ne $githubSha) {
+    throw 'O hash do servidor oficial GitHub MCP não confere.'
+}
+if (-not (Test-Path -LiteralPath $githubDir)) {
+    Expand-Archive -LiteralPath $githubZip -DestinationPath $githubDir
+} else {
+    Expand-Archive -LiteralPath $githubZip -DestinationPath $githubDir -Force
+}
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'Iniciar GitHub MCP.ps1') -Destination $githubDir -Force
 $cfg = Join-Path $stage 'profile\config\opencode'
 New-Item -ItemType Directory -Path $cfg -Force | Out-Null
 $globalConfig = [ordered]@{
     model = 'opencode/deepseek-v4.1-flash-free'
     mcp = @{ servers = @{
         context7 = @{ type='remote'; url='https://mcp.context7.com/mcp' }
-        github = @{ type='remote'; url='https://api.githubcopilot.com/mcp/'; headers=@{'X-MCP-Readonly'='true'; 'X-MCP-Toolsets'='repos,issues,pull_requests,actions'} }
+        github = @{ type='local'; command=@('powershell.exe', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', '{env:OPENCODE_PORTABLE_ROOT}\apps\OpenCode\resources\github-mcp\Iniciar GitHub MCP.ps1') }
+        'microsoft-learn' = @{ type='remote'; url='https://learn.microsoft.com/api/mcp'; oauth=$false }
     } }
 }
 [IO.File]::WriteAllText((Join-Path $cfg 'opencode.json'), ($globalConfig | ConvertTo-Json -Depth 8))
+[IO.File]::WriteAllText((Join-Path $desktopHelpers 'mcp-defaults.json'), ($globalConfig.mcp.servers | ConvertTo-Json -Depth 8))
 [IO.File]::WriteAllText((Join-Path $cfg 'AGENTS.md'), 'Converse sempre com o usuário em português do Brasil (pt-BR). Preserve comandos, código e identificadores quando a precisão exigir.')
 $license = Join-Path $root 'LICENSE'
 if (-not (Test-Path -LiteralPath $license)) { $license = Join-Path $out 'LICENSE' }
 Copy-Item -LiteralPath $license -Destination $stage
 $csc = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 $stub = Join-Path $out 'installer-stub.exe'
-& $csc /nologo /target:winexe /platform:x64 /codepage:65001 "/out:$stub" /reference:System.Windows.Forms.dll /reference:System.IO.Compression.FileSystem.dll (Join-Path $PSScriptRoot 'Installer.cs')
+& $csc /nologo /target:winexe /platform:x64 /codepage:65001 "/out:$stub" /reference:System.Drawing.dll /reference:System.Windows.Forms.dll /reference:System.IO.Compression.FileSystem.dll (Join-Path $PSScriptRoot 'Installer.cs')
 if ($LASTEXITCODE) { throw 'Falha ao compilar o instalador.' }
+Copy-Item -LiteralPath $stub -Destination (Join-Path $desktopHelpers 'update-worker.exe') -Force
 Add-Type -AssemblyName System.IO.Compression.FileSystem
-$zip = Join-Path $out 'payload.zip'
+$zip = Join-Path $out 'OpenCode-Infinite-PTBR-Update.zip'
 [IO.Compression.ZipFile]::CreateFromDirectory($stage, $zip, 'Optimal', $false)
 $result = Join-Path $out 'OpenCode-Infinite-PTBR-Setup.exe'
 $stream = [IO.File]::Create($result)
@@ -56,6 +78,7 @@ try {
     $footer = [BitConverter]::GetBytes([long](Get-Item -LiteralPath $stub).Length)
     $stream.Write($footer, 0, $footer.Length)
 } finally { $stream.Dispose() }
-$hash = (& node -e "const c=require('crypto'),fs=require('fs');process.stdout.write(c.createHash('sha256').update(fs.readFileSync(process.argv[1])).digest('hex'))" $result).Trim()
-($hash + '  OpenCode-Infinite-PTBR-Setup.exe') |
-    Set-Content -LiteralPath (Join-Path $out 'SHA256SUMS.txt') -Encoding ascii
+$sums = foreach ($file in $result, $zip) {
+    '{0}  {1}' -f (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant(), (Split-Path -Leaf $file)
+}
+$sums | Set-Content -LiteralPath (Join-Path $out 'SHA256SUMS.txt') -Encoding ascii

@@ -16,6 +16,21 @@ function portableSidebarNavigation(dialog, platform) {
     return button;
   };
   add("▦", "Biblioteca", () => portableLibrary(dialog));
+  const plugins = add("◈", "Plugins", () => portablePlugins(plugins));
+  plugins.dataset.portablePluginsNav = "";
+  const studio = add("♫", "VoiceStudio", async () => {
+    try {
+      if (!(await window.electron?.portableVoice?.studioOpen())?.opened) portableAddons();
+    } catch {
+      portableAddons("Não foi possível abrir o estúdio. Tente novamente pelo painel.");
+    }
+  });
+  const showLocalVoiceTools = () => {
+    studio.style.display = portableVoiceSettings().mode === "local" ? "" : "none";
+  };
+  showLocalVoiceTools();
+  window.addEventListener("portable-voice-settings-changed", showLocalVoiceTools);
+  F(() => window.removeEventListener("portable-voice-settings-changed", showLocalVoiceTools));
   portableMountUpdater(nav, add);
   return nav;
 }
@@ -31,10 +46,9 @@ function portableMountUpdater(nav, add) {
     button.disabled = true;
     try {
       if (available) {
-        status.textContent = "Preparando download…";
+        status.textContent = "Baixando e verificando a atualização…";
         const result = await api.download();
-        status.textContent = result === "saved" ? "Instalador salvo e verificado." :
-          result === "installing" ? "Instalando atualização…" : result === "cancelled" ? "" : result === "busy" ? "O download já está em andamento." : "Atualização indisponível.";
+        status.textContent = result === "installing" ? "Instalando e reiniciando…" : result === "busy" ? "O download já está em andamento." : "Atualização indisponível.";
       } else await check(true);
     } catch {
       status.textContent = "Não foi possível concluir a atualização. Tente novamente.";
@@ -45,7 +59,7 @@ function portableMountUpdater(nav, add) {
     try {
       const update = await api.check();
       available = update?.available ?? null;
-      button.lastChild.textContent = available ? "Baixar atualização " + available : "Verificar atualizações";
+      button.lastChild.textContent = available ? "Atualizar para " + available : "Verificar atualizações";
       button.classList.toggle("font-semibold", !!available);
       if (manual) status.textContent = available ? "Atualização disponível." : "Você está na versão " + update.installed + ".";
     } catch {

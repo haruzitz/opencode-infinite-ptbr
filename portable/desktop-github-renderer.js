@@ -1,29 +1,20 @@
-let portableGithubBrowse;
 const portableGithubModel = { providerID: "opencode", modelID: "deepseek-v4.1-flash-free" };
 
-function portableGithubButton(layout, global, tabs, getSession, getTab, registry, platform, dialog) {
+function portableGithubInstall(layout, global, tabs, getSession, getTab, registry, dialog) {
   const github = window.electron?.portableGithub;
   if (!github) return null;
-
-  const wrapper = document.createElement("div");
-  wrapper.className = "portable-github";
-  const toggle = document.createElement("button");
-  toggle.type = "button";
-  toggle.className = "portable-github-toggle";
-  toggle.title = "GitHub";
-  toggle.setAttribute("aria-label", "GitHub");
-  toggle.setAttribute("aria-expanded", "false");
-  V(toggle, I(SV, { name: "github" }));
 
   const panel = document.createElement("div");
   panel.className = "portable-github-panel";
   const dialogId = "portable-github";
   const status = document.createElement("p");
   status.setAttribute("role", "status");
+  const agentStatus = document.createElement("p");
+  agentStatus.setAttribute("role", "status");
   const destination = document.createElement("p");
   const login = document.createElement("button");
   login.type = "button";
-  login.textContent = "Conectar conta";
+  login.textContent = "Conectar Git do Windows";
   const cancelLogin = document.createElement("button");
   cancelLogin.type = "button";
   cancelLogin.textContent = "Cancelar tentativa";
@@ -35,6 +26,14 @@ function portableGithubButton(layout, global, tabs, getSession, getTab, registry
   const open = document.createElement("button");
   open.type = "button";
   open.textContent = "Abrir aba do GitHub";
+  const external = document.createElement("button");
+  external.type = "button";
+  external.textContent = "Abrir no navegador padrão";
+  const google = document.createElement("button");
+  google.type = "button";
+  google.textContent = "Entrar com Google no navegador padrão";
+  const webStatus = document.createElement("p");
+  webStatus.setAttribute("role", "status");
   const monitor = document.createElement("button");
   monitor.type = "button";
   monitor.textContent = "Acompanhar com a IA";
@@ -48,10 +47,11 @@ function portableGithubButton(layout, global, tabs, getSession, getTab, registry
   let current;
   let waitingForLogin = false;
   let loginSequence = 0;
+  let opened = false;
 
   function showLoginStatus(message, waiting) {
     waitingForLogin = waiting;
-    login.textContent = waiting ? "Tentar novamente" : "Conectar conta";
+    login.textContent = waiting ? "Tentar novamente" : "Conectar Git do Windows";
     cancelLogin.hidden = !waiting;
     loginStatus.textContent = message;
     loginStatus.hidden = !message;
@@ -84,13 +84,23 @@ function portableGithubButton(layout, global, tabs, getSession, getTab, registry
     status.textContent = "Verificando a conexão…";
     destination.textContent = "";
     publish.disabled = true;
-    open.disabled = !active?.directory;
+    open.disabled = false;
     monitor.disabled = !active?.directory;
     try {
       const result = await github.status(active?.directory);
-      status.textContent = result?.hasSavedAccount
-        ? "O Git do Windows já tem uma conta salva."
-        : "Nenhuma conta do GitHub está salva no Git do Windows.";
+      status.textContent = !result?.credentialStatusAvailable
+        ? "Não foi possível consultar o Gerenciador de Credenciais do Windows."
+        : result.hasSavedAccount ? "Git do Windows: conta salva." : "Git do Windows: nenhuma conta salva.";
+      agentStatus.textContent = "Acesso da IA · " + ({
+        connected: "Conectado", failed: "Falha na conexão", needs_auth: "Login pendente",
+        disabled: "Desativado", not_configured: "Não configurado",
+      }[result?.mcpStatus] ?? "Status indisponível");
+      configure.hidden = result?.mcpStatus === "connected";
+      webStatus.textContent = result?.webSignedIn === true ? "Janela interna: sessão do GitHub salva neste perfil."
+        : result?.webSignedIn === false ? "Janela interna: entre uma vez com sua conta do GitHub para abrir seus repositórios aqui."
+        : "Navegador do OpenCode: não foi possível verificar a sessão.";
+      open.textContent = result?.webSignedIn === false ? "Entrar no GitHub dentro do OpenCode" : "Abrir GitHub no OpenCode";
+      open.dataset.signIn = String(result?.webSignedIn === false);
       if (!active?.directory) destination.textContent = "Escolha um projeto.";
       else if (!result?.isGit) destination.textContent = "Este projeto ainda não é um repositório Git.";
       else if (!result.repository) destination.textContent = "O remoto origin deste projeto ainda não aponta para o GitHub.";
@@ -105,13 +115,16 @@ function portableGithubButton(layout, global, tabs, getSession, getTab, registry
     }
   }
 
-  toggle.addEventListener("click", () => {
-    toggle.setAttribute("aria-expanded", "true");
+  const show = () => {
+    if (opened) return;
+    opened = true;
     void dialog.show(() => I(OV, { title: "GitHub", fit: true, children: panel }), () => {
-      toggle.setAttribute("aria-expanded", "false");
+      opened = false;
     }, dialogId);
     void refresh();
-  });
+  };
+  document.addEventListener("portable-github-open", show);
+  F(() => document.removeEventListener("portable-github-open", show));
   configure.addEventListener("click", async () => {
     try {
       if (await github.configureReader()) dialog.close(dialogId);
@@ -142,7 +155,10 @@ function portableGithubButton(layout, global, tabs, getSession, getTab, registry
         failed: "A autorização não foi concluída. Você pode tentar novamente.",
       };
       showLoginStatus(messages[result] ?? messages.failed, false);
-      if (result === "authorized") await refresh();
+      if (result === "authorized") {
+        await refresh();
+        document.dispatchEvent(new Event("portable-github-changed"));
+      }
     } catch {
       if (attempt === loginSequence) showLoginStatus("Não foi possível iniciar a autorização.", false);
     } finally {
@@ -172,51 +188,21 @@ function portableGithubButton(layout, global, tabs, getSession, getTab, registry
     }
   });
   open.addEventListener("click", async () => {
-    const active = project();
-    if (!active?.directory) return;
-    const context = global.serverCtx(active.server);
-    if (!context) return;
-    const url = current ? "https://github.com/" + current.repository : "https://github.com/";
     open.disabled = true;
-    status.textContent = "Abrindo o GitHub no navegador do OpenCode…";
     try {
-      let session = layout.route().type === "session" ? getSession() : undefined;
-      if (!session) {
-        session = context.data.session.list().find(item =>
-          item.title === "GitHub" && item.location.directory === active.directory);
-        if (!session) {
-          session = await context.data.session.create({
-            title: "GitHub",
-            location: { directory: active.directory },
-            model: { providerID: portableGithubModel.providerID, id: portableGithubModel.modelID },
-          }).request;
-        }
-        tabs.select(tabs.addSessionTab({ server: active.server, sessionId: session.id }));
-      }
-
-      for (let attempt = 0; attempt < 32; attempt++) {
-        if (portableGithubBrowse?.(session.id, url)) {
-          dialog.close(dialogId);
-          return;
-        }
-        await new Promise(resolve => setTimeout(resolve, 250));
-      }
-      status.textContent = "Navegador indisponível nesta janela. Amplie a janela ou abra no navegador padrão.";
-      const fallback = document.createElement("button");
-      fallback.type = "button";
-      fallback.textContent = "Abrir no navegador padrão ↗";
-      fallback.addEventListener("click", () => platform.openExternal(url));
-      if (!panel.querySelector("[data-github-fallback]")) {
-        fallback.dataset.githubFallback = "";
-        panel.append(fallback);
-      }
-    } catch (error) {
-      console.error("[portable-github]", error);
-      status.textContent = "Não foi possível abrir a aba do GitHub.";
-    } finally {
-      open.disabled = false;
-    }
+      if (await github.openWeb(current?.repository, open.dataset.signIn === "true")) dialog.close(dialogId);
+      else webStatus.textContent = "Não foi possível abrir o GitHub no OpenCode.";
+    } catch {
+      webStatus.textContent = "Não foi possível abrir o GitHub no OpenCode.";
+    } finally { open.disabled = false; }
   });
+  const openInBrowser = async signIn => {
+    if (!await github.openWeb(current?.repository, signIn, true).catch(() => false)) {
+      webStatus.textContent = "Não foi possível abrir o navegador padrão.";
+    }
+  };
+  external.addEventListener("click", () => void openInBrowser(false));
+  google.addEventListener("click", () => void openInBrowser(true));
   monitor.addEventListener("click", async () => {
     const active = project();
     if (!active?.directory) return;
@@ -257,7 +243,6 @@ function portableGithubButton(layout, global, tabs, getSession, getTab, registry
 
   const style = document.createElement("style");
   style.textContent = portableGithubStyles;
-  panel.append(status, destination, login, cancelLogin, loginStatus, open, monitor, configure, publish);
-  wrapper.append(style, toggle);
-  return wrapper;
+  panel.append(status, agentStatus, destination, login, cancelLogin, loginStatus, webStatus, open, google, external, monitor, configure, publish);
+  return style;
 }
